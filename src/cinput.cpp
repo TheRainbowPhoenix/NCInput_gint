@@ -3,7 +3,9 @@
 #include <gint/keyboard.h>
 #include <gint/display.h>
 #include <gint/clock.h>
-#include <cstdio>
+#include <cmath>
+#include <cctype>
+#include <algorithm>
 
 namespace cinput {
 
@@ -12,12 +14,7 @@ static void cinput_drect_border_helper(int x1, int y1, int x2, int y2, int fill_
     ::drect_border(x1, y1, x2, y2, fill_color, width, border_color);
 }
 
-struct ThemeEntry {
-    const char* name;
-    Theme theme;
-};
-
-static const ThemeEntry THEME_DATA[] = {
+const std::map<std::string, Theme> THEMES = {
     {"light", {
         C_WHITE,
         C_WHITE,
@@ -59,34 +56,25 @@ static const ThemeEntry THEME_DATA[] = {
     }}
 };
 
-const Theme& get_theme(const String& name) {
-    for (size_t i = 0; i < sizeof(THEME_DATA)/sizeof(THEME_DATA[0]); ++i) {
-        if (name == THEME_DATA[i].name) return THEME_DATA[i].theme;
+const Theme& get_theme(const std::string& name) {
+    auto it = THEMES.find(name);
+    if (it != THEMES.end()) {
+        return it->second;
     }
-    return THEME_DATA[0].theme;
+    auto light_it = THEMES.find("light");
+    return light_it->second;
 }
 
 // =============================================================================
 // REUSABLE LIST VIEW
 // =============================================================================
 
-ListView::ListView(Rect rect, const Vector<ListItem>& items, int row_h, const String& theme, int headers_h)
+ListView::ListView(Rect rect, const std::vector<ListItem>& items, int row_h, const std::string& theme, int headers_h)
     : m_rect(rect), m_items(items), m_base_row_h(row_h), m_theme(get_theme(theme))
 {
     m_headers_h = (headers_h != -1) ? headers_h : row_h;
     m_drag_threshold = m_base_row_h;
     m_long_press_delay_ticks = 64; // ~500ms at 128Hz
-
-    m_total_h = 0;
-    m_selected_index = -1;
-    m_scroll_y = 0;
-    m_max_scroll = 0;
-    m_is_dragging = false;
-    m_touch_start_y = 0;
-    m_touch_start_idx = 0;
-    m_touch_start_ticks = 0;
-    m_touch_initial_item_idx = -1;
-    m_long_press_triggered = false;
 
     recalc_layout();
     select_next(0, 1);
@@ -94,8 +82,7 @@ ListView::ListView(Rect rect, const Vector<ListItem>& items, int row_h, const St
 
 void ListView::recalc_layout() {
     int total_h = 0;
-    for (size_t i = 0; i < m_items.size(); ++i) {
-        auto& it = m_items[i];
+    for (auto& it : m_items) {
         int h = (it.height != 0) ? it.height : (it.type == "section" ? m_headers_h : m_base_row_h);
         it._h = h;
         it._y = total_h;
@@ -152,15 +139,14 @@ void ListView::clamp_scroll() {
     if (m_scroll_y < 0) m_scroll_y = 0;
 }
 
-bool ListView::update(const Vector<key_event_t>& events, Action& out_action) {
+bool ListView::update(const std::vector<key_event_t>& events, Action& out_action) {
     uint32_t now = rtc_ticks();
 
     const key_event_t* touch_up = nullptr;
     const key_event_t* touch_down = nullptr;
     const key_event_t* current_touch = nullptr;
 
-    for (size_t i = 0; i < events.size(); ++i) {
-        const auto& e = events[i];
+    for (const auto& e : events) {
         if (e.type == KEYEV_TOUCH_DOWN) {
             touch_down = &e;
             current_touch = &e;
@@ -206,7 +192,7 @@ bool ListView::update(const Vector<key_event_t>& events, Action& out_action) {
             int dy = last_pos->y - m_touch_start_y;
 
             if (!m_is_dragging) {
-                if (dy > m_base_row_h || dy < -m_base_row_h) {
+                if (std::abs(dy) > m_base_row_h) {
                     m_is_dragging = true;
                     m_long_press_triggered = true;
                 }
@@ -257,9 +243,7 @@ bool ListView::update(const Vector<key_event_t>& events, Action& out_action) {
                     if (m_items[release_idx].type != "section") {
                         m_selected_index = release_idx;
                         ensure_visible();
-                        out_action.type = "click";
-                        out_action.index = release_idx;
-                        out_action.item = m_items[release_idx];
+                        out_action = {"click", release_idx, m_items[release_idx]};
                         result = true;
                     }
                 }
@@ -278,9 +262,7 @@ bool ListView::update(const Vector<key_event_t>& events, Action& out_action) {
                 const auto& it = m_items[m_touch_initial_item_idx];
                 if (it.type != "section") {
                     m_selected_index = m_touch_initial_item_idx;
-                    out_action.type = "long";
-                    out_action.index = m_touch_initial_item_idx;
-                    out_action.item = it;
+                    out_action = {"long", m_touch_initial_item_idx, it};
                     return true;
                 }
             }
@@ -288,8 +270,7 @@ bool ListView::update(const Vector<key_event_t>& events, Action& out_action) {
     }
 
     // 5. Keys
-    for (size_t i = 0; i < events.size(); ++i) {
-        const auto& e = events[i];
+    for (const auto& e : events) {
         if (e.type == KEYEV_DOWN || (e.type == KEYEV_HOLD && (e.key == KEY_UP || e.key == KEY_DOWN))) {
             if (e.key == KEY_UP) {
                 select_next(m_selected_index - 1, -1);
@@ -297,9 +278,7 @@ bool ListView::update(const Vector<key_event_t>& events, Action& out_action) {
                 select_next(m_selected_index + 1, 1);
             } else if (e.key == KEY_EXE) {
                 if (m_selected_index >= 0) {
-                    out_action.type = "click";
-                    out_action.index = m_selected_index;
-                    out_action.item = m_items[m_selected_index];
+                    out_action = {"click", m_selected_index, m_items[m_selected_index]};
                     return true;
                 }
             }
@@ -394,105 +373,39 @@ void ListView::draw_check(int x, int y, const Theme& t) {
 // KEYBOARD WIDGET
 // =============================================================================
 
-struct LayoutEntry {
-    const char* name;
-    const char* rows[4][10];
-    int row_counts[4];
+static const std::map<std::string, std::vector<std::vector<std::string>>> LAYOUTS = {
+    {"qwerty", {{"1","2","3","4","5","6","7","8","9","0"}, {"q","w","e","r","t","y","u","i","o","p"}, {"a","s","d","f","g","h","j","k","l",":"}, {"z","x","c","v","b","n","m",",",".","_"}}},
+    {"azerty", {{"1","2","3","4","5","6","7","8","9","0"}, {"a","z","e","r","t","y","u","i","o","p"}, {"q","s","d","f","g","h","j","k","l","m"}, {"w","x","c","v","b","n",",",".","_",":"}}},
+    {"qwertz", {{"1","2","3","4","5","6","7","8","9","0"}, {"q","w","e","r","t","z","u","i","o","p"}, {"a","s","d","f","g","h","j","k","l",":"}, {"y","x","c","v","b","n","m",",",".","_"}}},
+    {"abc",    {{"1","2","3","4","5","6","7","8","9","0"}, {"a","b","c","d","e","f","g","h","i","j"}, {"k","l","m","n","o","p","q","r","s","t"}, {"u","v","w","x","y","z",",",".","_",":"}}}
 };
 
-static const LayoutEntry LAYOUT_DATA[] = {
-    {
-        "qwerty",
-        {
-            {"1","2","3","4","5","6","7","8","9","0"},
-            {"q","w","e","r","t","y","u","i","o","p"},
-            {"a","s","d","f","g","h","j","k","l",":"},
-            {"z","x","c","v","b","n","m",",",".","_"}
-        },
-        {10, 10, 10, 10}
-    },
-    {
-        "azerty",
-        {
-            {"1","2","3","4","5","6","7","8","9","0"},
-            {"a","z","e","r","t","y","u","i","o","p"},
-            {"q","s","d","f","g","h","j","k","l","m"},
-            {"w","x","c","v","b","n",",",".","_",":"}
-        },
-        {10, 10, 10, 10}
-    },
-    {
-        "qwertz",
-        {
-            {"1","2","3","4","5","6","7","8","9","0"},
-            {"q","w","e","r","t","z","u","i","o","p"},
-            {"a","s","d","f","g","h","j","k","l",":"},
-            {"y","x","c","v","b","n","m",",",".","_"}
-        },
-        {10, 10, 10, 10}
-    },
-    {
-        "abc",
-        {
-            {"1","2","3","4","5","6","7","8","9","0"},
-            {"a","b","c","d","e","f","g","h","i","j"},
-            {"k","l","m","n","o","p","q","r","s","t"},
-            {"u","v","w","x","y","z",",",".","_",":"}
-        },
-        {10, 10, 10, 10}
-    }
-};
-
-static const char* LAYOUT_SYM_ROWS[4][10] = {
+static const std::vector<std::vector<std::string>> LAYOUT_SYM = {
     {"1","2","3","4","5","6","7","8","9","0"},
     {"@","#","$","_","&","-","+","(",")","/"},
     {"=","\\","<","*", "\"", "'", ":", ";", "!", "?"},
     {"{","}", "[", "]", "^", "~", "`", "|", "<", ">"}
 };
 
-Keyboard::Keyboard(int default_tab, bool enable_tabs, NumpadOpts numpad_opts, const String& theme, const String& layout)
-    : m_theme(get_theme(theme))
+Keyboard::Keyboard(int default_tab, bool enable_tabs, NumpadOpts numpad_opts, const std::string& theme, const std::string& layout)
+    : m_current_tab(default_tab), m_enable_tabs(enable_tabs), m_numpad_opts(numpad_opts), m_theme(get_theme(theme))
 {
-    m_current_tab = default_tab;
-    m_enable_tabs = enable_tabs;
-    m_numpad_opts = numpad_opts;
     m_y = SCREEN_H - KBD_H;
-    m_visible = true;
-    m_shift = false;
-    m_tabs[0] = "ABC";
-    m_tabs[1] = "Sym";
-    m_tabs[2] = "Math";
-
-    const LayoutEntry* entry = &LAYOUT_DATA[0];
-    for (size_t i = 0; i < sizeof(LAYOUT_DATA)/sizeof(LAYOUT_DATA[0]); ++i) {
-        if (layout == LAYOUT_DATA[i].name) {
-            entry = &LAYOUT_DATA[i];
-            break;
-        }
+    m_tabs = {"ABC", "Sym", "Math"};
+    auto it = LAYOUTS.find(layout);
+    if (it != LAYOUTS.end()) {
+        m_layout_alpha = it->second;
+    } else {
+        auto qwerty_it = LAYOUTS.find("qwerty");
+        m_layout_alpha = qwerty_it->second;
     }
-
-    for (int r = 0; r < 4; ++r) {
-        Vector<String> row;
-        for (int c = 0; c < entry->row_counts[r]; ++c) {
-            row.push_back(entry->rows[r][c]);
-        }
-        m_layout_alpha.push_back(row);
-    }
-
     if (layout != "qwerty") {
-        m_tabs[0] = (layout.length() <= 3) ? layout : String("Txt");
-        // Upper case conversion
-        char buf[16];
-        size_t len = m_tabs[0].length();
-        if (len > 15) len = 15;
-        memcpy(buf, m_tabs[0].c_str(), len);
-        buf[len] = '\0';
-        for (int i = 0; buf[i]; ++i) if (buf[i] >= 'a' && buf[i] <= 'z') buf[i] -= 32;
-        m_tabs[0] = buf;
+        m_tabs[0] = (layout.length() <= 3) ? layout : "Txt";
+        for (auto &c : m_tabs[0]) c = (char)std::toupper(c);
     }
 }
 
-void Keyboard::draw_key(int x, int y, int w, int h, const String& label, bool is_special, bool is_pressed, bool is_accent) {
+void Keyboard::draw_key(int x, int y, int w, int h, const std::string& label, bool is_special, bool is_pressed, bool is_accent) {
     color_t bg;
     if (is_pressed) bg = m_theme.hl;
     else if (is_accent) bg = m_theme.accent;
@@ -510,7 +423,7 @@ void Keyboard::draw_key(int x, int y, int w, int h, const String& label, bool is
 void Keyboard::draw_tabs() {
     int tab_w = SCREEN_W / 3;
     color_t border_col = m_theme.key_spec;
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < (int)m_tabs.size(); ++i) {
         int tx = i * tab_w;
         bool is_active = (i == m_current_tab);
         color_t bg = is_active ? m_theme.kbd_bg : m_theme.key_spec;
@@ -524,23 +437,18 @@ void Keyboard::draw_tabs() {
 }
 
 void Keyboard::draw_grid() {
+    const auto& layout = (m_current_tab == 1) ? LAYOUT_SYM : m_layout_alpha;
     int grid_y = m_y + TAB_H;
     int row_h = 45;
-    for (int r = 0; r < 4; ++r) {
-        int count = (m_current_tab == 1) ? 10 : (int)m_layout_alpha[r].size();
+    for (int r = 0; r < (int)layout.size(); ++r) {
+        int count = (int)layout[r].size();
         int kw = SCREEN_W / count;
         for (int c = 0; c < count; ++c) {
             int kx = c * kw;
             int ky = grid_y + r * row_h;
-            String label = (m_current_tab == 1) ? String(LAYOUT_SYM_ROWS[r][c]) : m_layout_alpha[r][c];
+            std::string label = layout[r][c];
             if (m_current_tab == 0 && m_shift) {
-                char buf[16];
-                size_t len = label.length();
-                if (len > 15) len = 15;
-                memcpy(buf, label.c_str(), len);
-                buf[len] = '\0';
-                for (int i = 0; buf[i]; ++i) if (buf[i] >= 'a' && buf[i] <= 'z') buf[i] -= 32;
-                label = buf;
+                for (auto &ch : label) ch = (char)std::toupper(ch);
             }
             bool is_pressed = (m_last_key == label);
             draw_key(kx, ky, kw, row_h, label, false, is_pressed);
@@ -555,30 +463,26 @@ void Keyboard::draw_grid() {
     draw_key(260, bot_y, 60, bot_h, "EXE", false, m_last_key == "ENTER", true);
 }
 
-String Keyboard::update_grid(int x, int y, int type) {
+std::string Keyboard::update_grid(int x, int y, int type) {
     int grid_y = m_y + TAB_H;
     int row_h = 45;
     int row_idx = (y - grid_y) / row_h;
     if (row_idx >= 0 && row_idx < 4) {
-        int count = (m_current_tab == 1) ? 10 : (int)m_layout_alpha[row_idx].size();
-        int kw = SCREEN_W / count;
+        const auto& layout = (m_current_tab == 1) ? LAYOUT_SYM : m_layout_alpha;
+        if (row_idx >= (int)layout.size()) return "";
+        const auto& row_chars = layout[row_idx];
+        int kw = SCREEN_W / (int)row_chars.size();
         int col_idx = x / kw;
         if (col_idx < 0) col_idx = 0;
-        if (col_idx >= count) col_idx = count - 1;
-        String char_val = (m_current_tab == 1) ? String(LAYOUT_SYM_ROWS[row_idx][col_idx]) : m_layout_alpha[row_idx][col_idx];
+        if (col_idx >= (int)row_chars.size()) col_idx = (int)row_chars.size() - 1;
+        std::string char_val = row_chars[col_idx];
         if (m_current_tab == 0 && m_shift) {
-            char buf[16];
-            size_t len = char_val.length();
-            if (len > 15) len = 15;
-            memcpy(buf, char_val.c_str(), len);
-            buf[len] = '\0';
-            for (int i = 0; buf[i]; ++i) if (buf[i] >= 'a' && buf[i] <= 'z') buf[i] -= 32;
-            char_val = buf;
+            for (auto &ch : char_val) ch = (char)std::toupper(ch);
         }
         if (type == KEYEV_TOUCH_DOWN) m_last_key = char_val;
         return char_val;
     } else if (row_idx == 4) {
-        String cmd = "";
+        std::string cmd = "";
         if (x < 50) {
             if (type == KEYEV_TOUCH_DOWN) m_shift = !m_shift;
         } else if (x < 100) cmd = "BACKSPACE";
@@ -590,8 +494,8 @@ String Keyboard::update_grid(int x, int y, int type) {
     return "";
 }
 
-Vector<KeyRect> Keyboard::get_math_rects() {
-    Vector<KeyRect> keys;
+std::vector<KeyRect> Keyboard::get_math_rects() {
+    std::vector<KeyRect> keys;
     int start_y = m_y + TAB_H;
     int total_h = KBD_H - TAB_H;
     int row_h = total_h / 4;
@@ -599,58 +503,58 @@ Vector<KeyRect> Keyboard::get_math_rects() {
     int center_w = SCREEN_W - (side_w * 2);
     int numpad_w = center_w / 3;
 
-    const char* l_chars[] = {"+", "-", "*", "/"};
+    std::vector<std::string> l_chars = {"+", "-", "*", "/"};
     for (int i = 0; i < 4; ++i) {
-        keys.push_back(KeyRect(0, start_y + i*row_h, side_w, row_h, l_chars[i], l_chars[i], true, false));
+        keys.push_back({0, start_y + i*row_h, side_w, row_h, l_chars[i], l_chars[i], true, false});
     }
 
-    struct RChar { const char* disp; const char* val; bool spec; bool acc; };
-    RChar r_chars[] = {{"%", "%", true, false}, {" ", " ", true, false}, {"<-", "BACKSPACE", true, false}, {"EXE", "ENTER", false, true}};
+    struct RChar { std::string disp; std::string val; bool spec; bool acc; };
+    std::vector<RChar> r_chars = {{"%", "%", true, false}, {" ", " ", true, false}, {"<-", "BACKSPACE", true, false}, {"EXE", "ENTER", false, true}};
     for (int i = 0; i < 4; ++i) {
-        keys.push_back(KeyRect(SCREEN_W - side_w, start_y + i*row_h, side_w, row_h, r_chars[i].disp, r_chars[i].val, r_chars[i].spec, r_chars[i].acc));
+        keys.push_back({SCREEN_W - side_w, start_y + i*row_h, side_w, row_h, r_chars[i].disp, r_chars[i].val, r_chars[i].spec, r_chars[i].acc});
     }
 
-    const char* nums[3][3] = {{"1","2","3"}, {"4","5","6"}, {"7","8","9"}};
+    std::vector<std::vector<std::string>> nums = {{"1","2","3"}, {"4","5","6"}, {"7","8","9"}};
     for (int r = 0; r < 3; ++r) {
         for (int c = 0; c < 3; ++c) {
-            keys.push_back(KeyRect(side_w + c*numpad_w, start_y + r*row_h, numpad_w, row_h, nums[r][c], nums[r][c], false, false));
+            keys.push_back({side_w + c*numpad_w, start_y + r*row_h, numpad_w, row_h, nums[r][c], nums[r][c], false, false});
         }
     }
 
     int y_bot = start_y + 3*row_h;
     int unit_w = center_w / 6;
-    const char* bot_row[] = {",", "#", "0", "=", "."};
-    int widths[] = {1, 1, 2, 1, 1};
+    std::vector<std::string> bot_row = {",", "#", "0", "=", "."};
+    std::vector<int> widths = {1, 1, 2, 1, 1};
     int cur_x = side_w;
     for (int i = 0; i < 5; ++i) {
         int w = widths[i] * unit_w;
         if (i == 4) w = (side_w + center_w) - cur_x;
-        keys.push_back(KeyRect(cur_x, y_bot, w, row_h, bot_row[i], bot_row[i], false, false));
+        keys.push_back({cur_x, y_bot, w, row_h, bot_row[i], bot_row[i], false, false});
         cur_x += w;
     }
     return keys;
 }
 
-Vector<KeyRect> Keyboard::get_numpad_rects() {
-    Vector<KeyRect> keys;
+std::vector<KeyRect> Keyboard::get_numpad_rects() {
+    std::vector<KeyRect> keys;
     int start_y = m_y;
     int total_h = KBD_H;
     int row_h = total_h / 4;
     int action_w = 80;
     int digit_w = (SCREEN_W - action_w) / 3;
 
-    keys.push_back(KeyRect(SCREEN_W - action_w, start_y, action_w, row_h, "<-", "BACKSPACE", true, false));
-    keys.push_back(KeyRect(SCREEN_W - action_w, start_y + row_h, action_w, row_h*3, "EXE", "ENTER", false, true));
+    keys.push_back({SCREEN_W - action_w, start_y, action_w, row_h, "<-", "BACKSPACE", true, false});
+    keys.push_back({SCREEN_W - action_w, start_y + row_h, action_w, row_h*3, "EXE", "ENTER", false, true});
 
-    const char* nums[3][3] = {{"1","2","3"}, {"4","5","6"}, {"7","8","9"}};
+    std::vector<std::vector<std::string>> nums = {{"1","2","3"}, {"4","5","6"}, {"7","8","9"}};
     for (int r = 0; r < 3; ++r) {
         for (int c = 0; c < 3; ++c) {
-            keys.push_back(KeyRect(c*digit_w, start_y + r*row_h, digit_w, row_h, nums[r][c], nums[r][c], false, false));
+            keys.push_back({c*digit_w, start_y + r*row_h, digit_w, row_h, nums[r][c], nums[r][c], false, false});
         }
     }
 
     int y_bot = start_y + 3*row_h;
-    Vector<const char*> bot_keys;
+    std::vector<std::string> bot_keys;
     if (m_numpad_opts.is_neg) bot_keys.push_back("-");
     bot_keys.push_back("0");
     if (m_numpad_opts.is_float) bot_keys.push_back(".");
@@ -661,24 +565,22 @@ Vector<KeyRect> Keyboard::get_numpad_rects() {
         for (int i = 0; i < (int)bot_keys.size(); ++i) {
             int w = bw;
             if (i == (int)bot_keys.size() - 1) w = (SCREEN_W - action_w) - cur_x;
-            keys.push_back(KeyRect(cur_x, y_bot, w, row_h, bot_keys[i], bot_keys[i], false, false));
+            keys.push_back({cur_x, y_bot, w, row_h, bot_keys[i], bot_keys[i], false, false});
             cur_x += w;
         }
     }
     return keys;
 }
 
-void Keyboard::draw_keys_from_rects(const Vector<KeyRect>& rects) {
-    for (size_t i = 0; i < rects.size(); ++i) {
-        const auto& r = rects[i];
+void Keyboard::draw_keys_from_rects(const std::vector<KeyRect>& rects) {
+    for (const auto& r : rects) {
         bool is_pressed = (m_last_key == r.val);
         draw_key(r.x, r.y, r.w, r.h, r.label, r.is_spec, is_pressed, r.is_acc);
     }
 }
 
-String Keyboard::update_keys_from_rects(const Vector<KeyRect>& rects, int x, int y, int type) {
-    for (size_t i = 0; i < rects.size(); ++i) {
-        const auto& r = rects[i];
+std::string Keyboard::update_keys_from_rects(const std::vector<KeyRect>& rects, int x, int y, int type) {
+    for (const auto& r : rects) {
         if (x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h) {
             if (type == KEYEV_TOUCH_DOWN) m_last_key = r.val;
             return r.val;
@@ -700,7 +602,7 @@ void Keyboard::draw() {
     }
 }
 
-String Keyboard::update(const key_event_t& ev) {
+std::string Keyboard::update(const key_event_t& ev) {
     if (ev.type == KEYEV_TOUCH_DOWN) m_last_key = "";
     if (!m_visible) return "";
 
@@ -725,17 +627,15 @@ String Keyboard::update(const key_event_t& ev) {
 // LIST PICKER WIDGET
 // =============================================================================
 
-ListPicker::ListPicker(const Vector<String>& options, const String& prompt, const String& theme, bool multi, int touch_mode)
+ListPicker::ListPicker(const std::vector<std::string>& options, const std::string& prompt, const std::string& theme, bool multi, int touch_mode)
     : m_options(options), m_prompt(prompt), m_theme(get_theme(theme)), m_theme_name(theme), m_multi(multi), m_touch_mode(touch_mode)
 {
     m_header_h = PICK_HEADER_H;
     m_footer_h = PICK_FOOTER_H;
     m_view_h = SCREEN_H - m_header_h - m_footer_h;
     m_btn_w = 60;
-    m_single_selection = 0;
-    m_last_action = "";
 
-    Vector<ListItem> lv_items;
+    std::vector<ListItem> lv_items;
     for (int i = 0; i < (int)options.size(); ++i) {
         ListItem it;
         it.text = options[i];
@@ -744,7 +644,7 @@ ListPicker::ListPicker(const Vector<String>& options, const String& prompt, cons
         lv_items.push_back(it);
     }
 
-    m_list_view = UniquePtr<ListView>(new ListView({0, m_header_h, SCREEN_W, m_view_h}, lv_items, PICK_ITEM_H, m_theme_name));
+    m_list_view = std::unique_ptr<ListView>(new ListView({0, m_header_h, SCREEN_W, m_view_h}, lv_items, PICK_ITEM_H, m_theme_name));
     if (!m_multi && !lv_items.empty()) {
         m_list_view->m_selected_index = 0;
     }
@@ -752,7 +652,7 @@ ListPicker::ListPicker(const Vector<String>& options, const String& prompt, cons
 
 ListPicker::~ListPicker() {}
 
-void ListPicker::draw_nav_btn(int x, int w, int h, const String& type, bool is_pressed) {
+void ListPicker::draw_nav_btn(int x, int w, int h, const std::string& type, bool is_pressed) {
     int y = SCREEN_H - h;
     color_t bg = is_pressed ? m_theme.hl : m_theme.key_spec;
 
@@ -784,11 +684,10 @@ void ListPicker::draw() {
     dclear(m_theme.modal_bg);
 
     if (m_multi) {
-        for (int i = 0; i < (int)m_list_view->m_items.size(); ++i) {
-            auto& it = m_list_view->m_items[i];
+        for (auto& it : m_list_view->m_items) {
             it.checked = false;
-            for (int j = 0; j < (int)m_selected_indices.size(); ++j) {
-                if (it.idx == m_selected_indices[j]) {
+            for (int idx : m_selected_indices) {
+                if (it.idx == idx) {
                     it.checked = true;
                     break;
                 }
@@ -834,27 +733,24 @@ PickResult ListPicker::run() {
         cleareventflips();
 
         key_event_t ev = pollevent();
-        Vector<key_event_t> events;
+        std::vector<key_event_t> events;
         while (ev.type != KEYEV_NONE) {
             events.push_back(ev);
             ev = pollevent();
         }
 
         if (keypressed(KEY_EXIT) || keypressed(KEY_DEL)) {
-            PickResult r;
-            r.success = false;
-            return r;
+            return {false, {}};
         }
 
         bool key_pg_up = keypressed(KEY_LEFT);
         bool key_pg_dn = keypressed(KEY_RIGHT);
 
-        Vector<key_event_t> lv_events;
+        std::vector<key_event_t> lv_events;
         const key_event_t* footer_touch = nullptr;
         const key_event_t* header_touch = nullptr;
 
-        for (size_t i = 0; i < events.size(); ++i) {
-            const auto& e = events[i];
+        for (const auto& e : events) {
             if (e.type == KEYEV_TOUCH_DOWN || e.type == KEYEV_TOUCH_UP || e.type == KEYEV_TOUCH_DRAG) {
                 if (e.y < m_header_h) {
                     header_touch = &e;
@@ -874,7 +770,7 @@ PickResult ListPicker::run() {
                 if (m_multi) {
                     int real_idx = action.item.idx;
                     bool found = false;
-                    for (int* it = m_selected_indices.begin(); it != m_selected_indices.end(); ++it) {
+                    for (auto it = m_selected_indices.begin(); it != m_selected_indices.end(); ++it) {
                         if (*it == real_idx) {
                             m_selected_indices.erase(it);
                             found = true;
@@ -883,10 +779,7 @@ PickResult ListPicker::run() {
                     }
                     if (!found) m_selected_indices.push_back(real_idx);
                 } else {
-                    PickResult res;
-                    res.success = true;
-                    res.values.push_back(m_options[action.item.idx]);
-                    return res;
+                    return { true, { m_options[action.item.idx] } };
                 }
             }
         }
@@ -904,9 +797,7 @@ PickResult ListPicker::run() {
 
         if (header_touch && header_touch->type == m_touch_mode) {
             if (!ignore_action && header_touch->x < 40) {
-                PickResult r;
-                r.success = false;
-                return r;
+                return {false, {}};
             }
         }
 
@@ -920,8 +811,8 @@ PickResult ListPicker::run() {
             }
         }
 
-        for (size_t i = 0; i < events.size(); ++i) {
-            if (events[i].type == KEYEV_TOUCH_UP) touch_latched = false;
+        for (const auto& e : events) {
+            if (e.type == KEYEV_TOUCH_UP) touch_latched = false;
         }
 
         if (!m_last_action.empty()) {
@@ -933,29 +824,13 @@ PickResult ListPicker::run() {
                 m_list_view->clamp_scroll();
             } else if (m_last_action == "OK") {
                 if (m_multi) {
-                    PickResult res;
-                    res.success = true;
-                    // Simplified sorting for multi-selection result
-                    Vector<int> sorted_indices = m_selected_indices;
-                    for (int i = 0; i < (int)sorted_indices.size(); ++i) {
-                        for (int j = i+1; j < (int)sorted_indices.size(); ++j) {
-                            if (sorted_indices[i] > sorted_indices[j]) {
-                                int tmp = sorted_indices[i];
-                                sorted_indices[i] = sorted_indices[j];
-                                sorted_indices[j] = tmp;
-                            }
-                        }
-                    }
-                    for (int i = 0; i < (int)sorted_indices.size(); ++i) {
-                        res.values.push_back(m_options[sorted_indices[i]]);
-                    }
-                    return res;
+                    std::vector<std::string> res;
+                    std::sort(m_selected_indices.begin(), m_selected_indices.end());
+                    for (int idx : m_selected_indices) res.push_back(m_options[idx]);
+                    return {true, res};
                 } else {
                     if (m_list_view->m_selected_index >= 0) {
-                        PickResult res;
-                        res.success = true;
-                        res.values.push_back(m_options[m_list_view->m_items[m_list_view->m_selected_index].idx]);
-                        return res;
+                        return { true, { m_options[m_list_view->m_items[m_list_view->m_selected_index].idx] } };
                     }
                 }
             }
@@ -970,20 +845,15 @@ PickResult ListPicker::run() {
 // CONFIRMATION DIALOG
 // =============================================================================
 
-ConfirmationDialog::ConfirmationDialog(const String& title, const String& body, const String& ok_text, const String& cancel_text, const String& theme, int touch_mode)
-    : m_theme(get_theme(theme))
+ConfirmationDialog::ConfirmationDialog(const std::string& title, const std::string& body, const std::string& ok_text, const std::string& cancel_text, const std::string& theme, int touch_mode)
+    : m_title(title), m_body(body), m_ok_text(ok_text), m_cancel_text(cancel_text), m_theme(get_theme(theme)), m_touch_mode(touch_mode)
 {
-    m_title = title;
-    m_body = body;
-    m_ok_text = ok_text;
-    m_cancel_text = cancel_text;
-    m_touch_mode = touch_mode;
     m_header_h = 40;
     m_footer_h = 45;
     m_btn_w = SCREEN_W / 2;
 }
 
-void ConfirmationDialog::draw_btn(int x, int y, int w, int h, const String& text, bool pressed) {
+void ConfirmationDialog::draw_btn(int x, int y, int w, int h, const std::string& text, bool pressed) {
     color_t bg = pressed ? m_theme.hl : m_theme.key_spec;
     drect(x, y, x + w, y + h, bg);
     cinput_drect_border_helper(x, y, x + w, y + h, (int)C_NONE, 1, (int)m_theme.key_spec);
@@ -1024,15 +894,14 @@ bool ConfirmationDialog::run() {
         if (keypressed(KEY_EXE)) return true;
 
         key_event_t ev = pollevent();
-        Vector<key_event_t> events;
+        std::vector<key_event_t> events;
         while (ev.type != KEYEV_NONE) {
             events.push_back(ev);
             ev = pollevent();
         }
 
         const key_event_t* touch = nullptr;
-        for (size_t i = 0; i < events.size(); ++i) {
-            const auto& e = events[i];
+        for (const auto& e : events) {
             if (e.type == KEYEV_TOUCH_DOWN && !touch_latched) {
                 touch_latched = true;
                 touch = &e;
@@ -1073,25 +942,25 @@ bool ConfirmationDialog::run() {
 // PUBLIC FUNCTIONS
 // =============================================================================
 
-InputResult input(const String& prompt, const String& type, const String& theme_name, const String& layout, int touch_mode) {
+InputResult input(const std::string& prompt, const std::string& type, const std::string& theme_name, const std::string& layout, int touch_mode) {
     const Theme& t = get_theme(theme_name);
     clearevents();
     cleareventflips();
 
     int start_tab = 0;
     bool enable_tabs = true;
-    NumpadOpts numpad_opts;
+    NumpadOpts numpad_opts = {true, true};
 
-    if (type.find("numeric_") != (size_t)-1) {
+    if (type.find("numeric_") != std::string::npos) {
         enable_tabs = false;
-        numpad_opts.is_float = (type.find("int") == (size_t)-1);
-        numpad_opts.is_neg = (type.find("negative") != (size_t)-1);
+        numpad_opts.is_float = (type.find("int") == std::string::npos);
+        numpad_opts.is_neg = (type.find("negative") != std::string::npos);
     } else if (type == "math") {
         start_tab = 2;
     }
 
     Keyboard kbd(start_tab, enable_tabs, numpad_opts, theme_name, layout);
-    String text = "";
+    std::string text = "";
     bool touch_latched = false;
 
     while (true) {
@@ -1110,35 +979,25 @@ InputResult input(const String& prompt, const String& type, const String& theme_
         // Input Box
         int box_y = 60, box_h = 40;
         cinput_drect_border_helper(10, box_y, SCREEN_W - 10, box_y + box_h, (int)t.hl, 2, (int)t.txt);
-        String display_text = text + "_";
+        std::string display_text = text + "_";
         dtext(15, box_y + 10, t.txt, display_text.c_str());
 
         kbd.draw();
         dupdate();
         cleareventflips();
 
-        if (keypressed(KEY_EXIT)) {
-            InputResult r;
-            r.success = false;
-            return r;
-        }
-        if (keypressed(KEY_EXE)) {
-            InputResult r;
-            r.success = true;
-            r.value = text;
-            return r;
-        }
+        if (keypressed(KEY_EXIT)) return {false, ""};
+        if (keypressed(KEY_EXE)) return {true, text};
         if (keypressed(KEY_DEL) && !text.empty()) text.pop_back();
 
         key_event_t ev = pollevent();
-        Vector<key_event_t> events;
+        std::vector<key_event_t> events;
         while (ev.type != KEYEV_NONE) {
             events.push_back(ev);
             ev = pollevent();
         }
 
-        for (size_t i = 0; i < events.size(); ++i) {
-            const auto& e = events[i];
+        for (const auto& e : events) {
             if (e.type == KEYEV_TOUCH_UP) {
                 touch_latched = false;
                 kbd.m_last_key = "";
@@ -1148,21 +1007,16 @@ InputResult input(const String& prompt, const String& type, const String& theme_
             if (touch_mode == KEYEV_TOUCH_DOWN && touch_latched) should_close = false;
 
             if (should_close && e.y < PICK_HEADER_H && e.x < 40) {
-                InputResult r;
-                r.success = false;
-                return r;
+                return {false, ""};
             }
 
             if (e.type == KEYEV_TOUCH_DOWN && !touch_latched) {
                 if (!(e.y < PICK_HEADER_H && e.x < 40)) {
                     touch_latched = true;
-                    String res = kbd.update(e);
+                    std::string res = kbd.update(e);
                     if (!res.empty()) {
                         if (res == "ENTER") {
-                            InputResult r;
-                            r.success = true;
-                            r.value = text;
-                            return r;
+                            return {true, text};
                         } else if (res == "BACKSPACE") {
                             if (!text.empty()) text.pop_back();
                         } else if (res.length() == 1) {
@@ -1177,12 +1031,12 @@ InputResult input(const String& prompt, const String& type, const String& theme_
     }
 }
 
-PickResult pick(const Vector<String>& options, const String& prompt, const String& theme, bool multi, int touch_mode) {
+PickResult pick(const std::vector<std::string>& options, const std::string& prompt, const std::string& theme, bool multi, int touch_mode) {
     ListPicker picker(options, prompt, theme, multi, touch_mode);
     return picker.run();
 }
 
-bool ask(const String& title, const String& body, const String& ok_text, const String& cancel_text, const String& theme, int touch_mode) {
+bool ask(const std::string& title, const std::string& body, const std::string& ok_text, const std::string& cancel_text, const std::string& theme, int touch_mode) {
     ConfirmationDialog dlg(title, body, ok_text, cancel_text, theme, touch_mode);
     return dlg.run();
 }

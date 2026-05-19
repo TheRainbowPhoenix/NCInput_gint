@@ -4,7 +4,10 @@
 #include <gint/display.h>
 #include <gint/keyboard.h>
 #include <gint/rtc.h>
-#include "cinput_utils.hpp"
+#include <string>
+#include <vector>
+#include <map>
+#include <memory>
 
 namespace cinput {
 
@@ -40,45 +43,44 @@ struct Theme {
     color_t check;
 };
 
-const Theme& get_theme(const String& name);
+extern const std::map<std::string, Theme> THEMES;
+
+const Theme& get_theme(const std::string& name);
 
 // =============================================================================
 // REUSABLE LIST VIEW
 // =============================================================================
 
 struct ListItem {
-    String text;
-    String type;
-    int height;
-    bool checked;
-    bool arrow;
-    int idx;
+    std::string text;
+    std::string type = "item"; // "item" or "section"
+    int height = 0;            // 0 means use default
+    bool checked = false;
+    bool arrow = false;
+    int idx = -1;
 
     // Internal layout state
-    int _h;
-    int _y;
-
-    ListItem() : type("item"), height(0), checked(false), arrow(false), idx(-1), _h(0), _y(0) {}
+    int _h = 0;
+    int _y = 0;
 };
 
 class ListView {
 public:
     struct Rect { int x, y, w, h; };
     struct Action {
-        String type; // "click", "long"
+        std::string type; // "click", "long"
         int index;
         ListItem item;
-        Action() : index(-1) {}
     };
 
-    ListView(Rect rect, const Vector<ListItem>& items, int row_h = 40, const String& theme = "light", int headers_h = -1);
+    ListView(Rect rect, const std::vector<ListItem>& items, int row_h = 40, const std::string& theme = "light", int headers_h = -1);
 
     void recalc_layout();
     void select_next(int start_idx, int step);
     void ensure_visible();
     void clamp_scroll();
 
-    bool update(const Vector<key_event_t>& events, Action& out_action);
+    bool update(const std::vector<key_event_t>& events, Action& out_action);
 
     int get_index_at(int y);
     void draw_item(int x, int y, const ListItem& item, bool is_selected);
@@ -86,27 +88,27 @@ public:
     void draw_check(int x, int y, const Theme& t);
 
     Rect m_rect;
-    Vector<ListItem> m_items;
+    std::vector<ListItem> m_items;
     int m_base_row_h;
     int m_headers_h;
     const Theme& m_theme;
 
-    int m_total_h;
-    int m_selected_index;
-    int m_scroll_y;
-    int m_max_scroll;
+    int m_total_h = 0;
+    int m_selected_index = -1;
+    int m_scroll_y = 0;
+    int m_max_scroll = 0;
 
     // Touch State
-    bool m_is_dragging;
-    int m_touch_start_y;
-    int m_touch_start_idx;
-    uint32_t m_touch_start_ticks;
-    int m_touch_initial_item_idx;
-    bool m_long_press_triggered;
+    bool m_is_dragging = false;
+    int m_touch_start_y = 0;
+    int m_touch_start_idx = 0;
+    uint32_t m_touch_start_ticks = 0;
+    int m_touch_initial_item_idx = -1;
+    bool m_long_press_triggered = false;
 
     // Configuration
     int m_drag_threshold;
-    uint32_t m_long_press_delay_ticks;
+    uint32_t m_long_press_delay_ticks = 64; // ~500ms at 128Hz
 };
 
 // =============================================================================
@@ -114,51 +116,45 @@ public:
 // =============================================================================
 
 struct NumpadOpts {
-    bool is_float;
-    bool is_neg;
-    NumpadOpts() : is_float(true), is_neg(true) {}
-    NumpadOpts(bool f, bool n) : is_float(f), is_neg(n) {}
+    bool is_float = true;
+    bool is_neg = true;
 };
 
 struct KeyRect {
     int x, y, w, h;
-    String label;
-    String val;
+    std::string label;
+    std::string val;
     bool is_spec;
     bool is_acc;
-
-    KeyRect() : x(0), y(0), w(0), h(0), is_spec(false), is_acc(false) {}
-    KeyRect(int _x, int _y, int _w, int _h, String _l, String _v, bool _s, bool _a)
-        : x(_x), y(_y), w(_w), h(_h), label(_l), val(_v), is_spec(_s), is_acc(_a) {}
 };
 
 class Keyboard {
 public:
-    Keyboard(int default_tab = 0, bool enable_tabs = true, NumpadOpts numpad_opts = NumpadOpts(), const String& theme = "light", const String& layout = "qwerty");
+    Keyboard(int default_tab = 0, bool enable_tabs = true, NumpadOpts numpad_opts = {true, true}, const std::string& theme = "light", const std::string& layout = "qwerty");
 
-    void draw_key(int x, int y, int w, int h, const String& label, bool is_special = false, bool is_pressed = false, bool is_accent = false);
+    void draw_key(int x, int y, int w, int h, const std::string& label, bool is_special = false, bool is_pressed = false, bool is_accent = false);
     void draw_tabs();
     void draw_grid();
-    String update_grid(int x, int y, int type);
+    std::string update_grid(int x, int y, int type);
 
-    Vector<KeyRect> get_math_rects();
-    Vector<KeyRect> get_numpad_rects();
-    void draw_keys_from_rects(const Vector<KeyRect>& rects);
-    String update_keys_from_rects(const Vector<KeyRect>& rects, int x, int y, int type);
+    std::vector<KeyRect> get_math_rects();
+    std::vector<KeyRect> get_numpad_rects();
+    void draw_keys_from_rects(const std::vector<KeyRect>& rects);
+    std::string update_keys_from_rects(const std::vector<KeyRect>& rects, int x, int y, int type);
 
     void draw();
-    String update(const key_event_t& ev);
+    std::string update(const key_event_t& ev);
 
     int m_y;
-    bool m_visible;
+    bool m_visible = true;
     int m_current_tab;
     bool m_enable_tabs;
-    bool m_shift;
-    String m_tabs[3];
-    String m_last_key;
+    bool m_shift = false;
+    std::vector<std::string> m_tabs;
+    std::string m_last_key;
     NumpadOpts m_numpad_opts;
     const Theme& m_theme;
-    Vector<Vector<String>> m_layout_alpha;
+    std::vector<std::vector<std::string>> m_layout_alpha;
 };
 
 // =============================================================================
@@ -167,16 +163,16 @@ public:
 
 struct InputResult {
     bool success;
-    String value;
+    std::string value;
 };
 
 struct PickResult {
     bool success;
-    Vector<String> values;
+    std::vector<std::string> values;
 };
 
-InputResult input(const String& prompt = "Input:", const String& type = "alpha_numeric", const String& theme = "light", const String& layout = "qwerty", int touch_mode = KEYEV_TOUCH_DOWN);
-PickResult pick(const Vector<String>& options, const String& prompt = "Select:", const String& theme = "light", bool multi = false, int touch_mode = KEYEV_TOUCH_DOWN);
+InputResult input(const std::string& prompt = "Input:", const std::string& type = "alpha_numeric", const std::string& theme = "light", const std::string& layout = "qwerty", int touch_mode = KEYEV_TOUCH_DOWN);
+PickResult pick(const std::vector<std::string>& options, const std::string& prompt = "Select:", const std::string& theme = "light", bool multi = false, int touch_mode = KEYEV_TOUCH_DOWN);
 
 // =============================================================================
 // LIST PICKER WIDGET
@@ -184,30 +180,30 @@ PickResult pick(const Vector<String>& options, const String& prompt = "Select:",
 
 class ListPicker {
 public:
-    ListPicker(const Vector<String>& options, const String& prompt = "Select:", const String& theme = "light", bool multi = false, int touch_mode = KEYEV_TOUCH_DOWN);
+    ListPicker(const std::vector<std::string>& options, const std::string& prompt = "Select:", const std::string& theme = "light", bool multi = false, int touch_mode = KEYEV_TOUCH_DOWN);
     ~ListPicker();
 
-    void draw_nav_btn(int x, int w, int h, const String& type, bool is_pressed);
+    void draw_nav_btn(int x, int w, int h, const std::string& type, bool is_pressed);
     void draw_close_icon(int x, int y, int sz, color_t col);
     void draw();
     PickResult run();
 
-    Vector<String> m_options;
-    String m_prompt;
+    std::vector<std::string> m_options;
+    std::string m_prompt;
     const Theme& m_theme;
-    String m_theme_name;
+    std::string m_theme_name;
     bool m_multi;
     int m_touch_mode;
-    Vector<int> m_selected_indices; // for multi
-    int m_single_selection;
+    std::vector<int> m_selected_indices; // for multi
+    int m_single_selection = 0;
 
     int m_header_h;
     int m_footer_h;
     int m_view_h;
     int m_btn_w;
-    String m_last_action;
+    std::string m_last_action;
 
-    UniquePtr<ListView> m_list_view;
+    std::unique_ptr<ListView> m_list_view;
 };
 
 // =============================================================================
@@ -216,16 +212,16 @@ public:
 
 class ConfirmationDialog {
 public:
-    ConfirmationDialog(const String& title, const String& body, const String& ok_text = "OK", const String& cancel_text = "Cancel", const String& theme = "light", int touch_mode = KEYEV_TOUCH_DOWN);
+    ConfirmationDialog(const std::string& title, const std::string& body, const std::string& ok_text = "OK", const std::string& cancel_text = "Cancel", const std::string& theme = "light", int touch_mode = KEYEV_TOUCH_DOWN);
 
-    void draw_btn(int x, int y, int w, int h, const String& text, bool pressed);
+    void draw_btn(int x, int y, int w, int h, const std::string& text, bool pressed);
     void draw(bool btn_ok_pressed, bool btn_cn_pressed);
     bool run();
 
-    String m_title;
-    String m_body;
-    String m_ok_text;
-    String m_cancel_text;
+    std::string m_title;
+    std::string m_body;
+    std::string m_ok_text;
+    std::string m_cancel_text;
     const Theme& m_theme;
     int m_touch_mode;
     int m_header_h;
@@ -233,7 +229,7 @@ public:
     int m_btn_w;
 };
 
-bool ask(const String& title, const String& body, const String& ok_text = "OK", const String& cancel_text = "Cancel", const String& theme = "light", int touch_mode = KEYEV_TOUCH_DOWN);
+bool ask(const std::string& title, const std::string& body, const std::string& ok_text = "OK", const std::string& cancel_text = "Cancel", const std::string& theme = "light", int touch_mode = KEYEV_TOUCH_DOWN);
 
 } // namespace cinput
 

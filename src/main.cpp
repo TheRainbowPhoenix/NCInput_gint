@@ -2,21 +2,15 @@
 #include <gint/keyboard.h>
 #include <gint/rtc.h>
 #include <gint/clock.h>
-#include <cstdio>
+#include <string>
+#include <vector>
 #include "cinput.hpp"
 
 using namespace cinput;
 
 const int HEADER_H = 40;
 
-// Utility to replace std::to_string
-String to_string(int n) {
-    char buf[16];
-    sprintf(buf, "%d", n);
-    return String(buf);
-}
-
-void draw_header(const String& theme_name, const String& title = "Demo App") {
+void draw_header(const std::string& theme_name, const std::string& title = "Demo App") {
     const Theme& t = get_theme(theme_name);
     // Header Bar
     drect(0, 0, SCREEN_W, HEADER_H, t.accent);
@@ -31,8 +25,8 @@ void draw_header(const String& theme_name, const String& title = "Demo App") {
 }
 
 int main() {
-    Vector<String> themes = {"light", "dark", "grey"};
-    Vector<String> layouts = {"qwerty", "azerty", "qwertz", "abc"};
+    std::vector<std::string> themes = {"light", "dark", "grey"};
+    std::vector<std::string> layouts = {"qwerty", "azerty", "qwertz", "abc"};
 
     int curr_theme_idx = 0;
     int curr_layout_idx = 0;
@@ -41,8 +35,8 @@ int main() {
     bool touch_latched = false;
 
     while (running) {
-        String current_theme_name = themes[curr_theme_idx];
-        String current_layout_name = layouts[curr_layout_idx];
+        std::string current_theme_name = themes[curr_theme_idx];
+        std::string current_layout_name = layouts[curr_layout_idx];
         const Theme& t = get_theme(current_theme_name);
 
         // Draw Main Shell
@@ -52,7 +46,7 @@ int main() {
         // Main Content
         const char* msg = "Tap Menu or press [MENU]";
         dtext_opt(SCREEN_W/2, SCREEN_H/2, t.txt, (int)C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, msg, -1);
-        String theme_msg = String("Theme: ") + current_theme_name;
+        std::string theme_msg = "Theme: " + current_theme_name;
         dtext_opt(SCREEN_W/2, SCREEN_H/2 + 20, t.key_spec, (int)C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, theme_msg.c_str(), -1);
 
         dupdate();
@@ -72,14 +66,13 @@ int main() {
 
         // Event Processing
         key_event_t e = pollevent();
-        Vector<key_event_t> events;
+        std::vector<key_event_t> events;
         while (e.type != KEYEV_NONE) {
             events.push_back(e);
             e = pollevent();
         }
 
-        for (size_t i = 0; i < events.size(); ++i) {
-            const auto& ev = events[i];
+        for (const auto& ev : events) {
             if (ev.type == KEYEV_TOUCH_UP) {
                 touch_latched = false;
             } else if (ev.type == KEYEV_TOUCH_DOWN && !touch_latched) {
@@ -94,7 +87,7 @@ int main() {
         // Handle Menu Action
         if (open_menu) {
             cleareventflips();
-            Vector<String> opts = {
+            std::vector<std::string> opts = {
                 "Text Input Demo",
                 "Integer Input Demo",
                 "Float Input Demo",
@@ -108,19 +101,19 @@ int main() {
             PickResult choice_res = pick(opts, "App Menu", current_theme_name);
 
             if (choice_res.success && !choice_res.values.empty()) {
-                String choice = choice_res.values[0];
+                std::string choice = choice_res.values[0];
 
                 if (choice == "Quit") {
                     running = false;
-                } else if (choice.find("Switch Theme") != (size_t)-1) {
+                } else if (choice.find("Switch Theme") != std::string::npos) {
                     curr_theme_idx = (curr_theme_idx + 1) % themes.size();
-                } else if (choice.find("Switch Layout") != (size_t)-1) {
+                } else if (choice.find("Switch Layout") != std::string::npos) {
                     curr_layout_idx = (curr_layout_idx + 1) % layouts.size();
                 } else if (choice == "Text Input Demo") {
-                    InputResult res = input(String("Enter text (") + current_layout_name + "):", "text", current_theme_name, current_layout_name);
+                    InputResult res = input("Enter text (" + current_layout_name + "):", "text", current_theme_name, current_layout_name);
                     if (res.success) {
                         dclear(t.modal_bg);
-                        String typed = String("You typed: ") + res.value;
+                        std::string typed = "You typed: " + res.value;
                         dtext_opt(SCREEN_W/2, SCREEN_H/2, t.txt, (int)C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, typed.c_str(), -1);
                         dupdate();
                         getkey();
@@ -129,7 +122,7 @@ int main() {
                     InputResult res = input("Enter Integer:", "numeric_int negative", current_theme_name);
                     if (res.success) {
                         dclear(t.modal_bg);
-                        String val = String("Value: ") + res.value;
+                        std::string val = "Value: " + res.value;
                         dtext_opt(SCREEN_W/2, SCREEN_H/2, t.txt, (int)C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, val.c_str(), -1);
                         dupdate();
                         getkey();
@@ -138,18 +131,18 @@ int main() {
                     InputResult res = input("Enter Float:", "numeric_float", current_theme_name);
                     if (res.success) {
                         dclear(t.modal_bg);
-                        String val = String("Value: ") + res.value;
+                        std::string val = "Value: " + res.value;
                         dtext_opt(SCREEN_W/2, SCREEN_H/2, t.txt, (int)C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, val.c_str(), -1);
                         dupdate();
                         getkey();
                     }
                 } else if (choice == "List Picker Demo") {
-                    Vector<String> demo_opts;
-                    for (int i = 1; i <= 20; ++i) demo_opts.push_back(String("Item ") + to_string(i));
+                    std::vector<std::string> demo_opts;
+                    for (int i = 1; i <= 20; ++i) demo_opts.push_back("Item " + std::to_string(i));
                     PickResult res = pick(demo_opts, "Multi Select Demo", current_theme_name, true);
                     if (res.success) {
                         dclear(t.modal_bg);
-                        String res_str = "Selected: ";
+                        std::string res_str = "Selected: ";
                         for (size_t i = 0; i < res.values.size(); ++i) {
                             res_str += res.values[i] + (i == res.values.size() - 1 ? "" : ", ");
                         }
