@@ -14,7 +14,7 @@ static void cinput_drect_border_helper(int x1, int y1, int x2, int y2, int fill_
     ::drect_border(x1, y1, x2, y2, fill_color, width, border_color);
 }
 
-const std::map<std::string, Theme> THEMES = {
+std::map<std::string, Theme> THEMES = {
     {"light", {
         C_WHITE,
         C_WHITE,

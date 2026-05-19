@@ -1,4 +1,4 @@
-name: Build Simulator
+name: Build Multi-App Simulator
 
 on:
   push:
@@ -19,11 +19,11 @@ jobs:
         cd simulator/build
         cmake ..
         make
-    - name: Upload Linux Artifact
+    - name: Upload Linux Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: simulator-linux
-        path: simulator/build/simulator
+        path: simulator/build/*_sim
 
   build-windows:
     runs-on: windows-latest
@@ -36,12 +36,12 @@ jobs:
         cd simulator/build
         cmake .. -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" -A x64
         cmake --build . --config Release
-    - name: Upload Windows Artifact
+    - name: Upload Windows Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: simulator-windows
         path: |
-          simulator/build/Release/simulator.exe
+          simulator/build/Release/*.exe
           simulator/build/Release/*.dll
 
   build-web:
@@ -65,11 +65,21 @@ jobs:
         emmake make
     - name: Prepare Artifacts
       run: |
-        mkdir -p simulator/dist
-        cp simulator/build_web/simulator_web.html simulator/dist/index.html
-        cp simulator/build_web/simulator_web.js simulator/dist/
-        cp simulator/build_web/simulator_web.wasm simulator/dist/
-    - name: Upload Web Artifact
+        mkdir -p simulator/dist/cinput_demo
+        cp simulator/build_web/cinput_demo_web.html simulator/dist/cinput_demo/index.html
+        cp simulator/build_web/cinput_demo_web.js simulator/dist/cinput_demo/
+        cp simulator/build_web/cinput_demo_web.wasm simulator/dist/cinput_demo/
+
+        mkdir -p simulator/dist/physchem
+        cp simulator/build_web/physchem_web.html simulator/dist/physchem/index.html
+        cp simulator/build_web/physchem_web.js simulator/dist/physchem/
+        cp simulator/build_web/physchem_web.wasm simulator/dist/physchem/
+
+        mkdir -p simulator/dist/app_template
+        cp simulator/build_web/app_template_web.html simulator/dist/app_template/index.html
+        cp simulator/build_web/app_template_web.js simulator/dist/app_template/
+        cp simulator/build_web/app_template_web.wasm simulator/dist/app_template/
+    - name: Upload Web Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: simulator-web

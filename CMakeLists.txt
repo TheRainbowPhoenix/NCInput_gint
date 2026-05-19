@@ -1,6 +1,3 @@
-# Configure with [fxsdk build-fx] or [fxsdk build-cg], which provide the
-# toolchain file and module path of the fxSDK
-
 cmake_minimum_required(VERSION 3.15)
 project(MyAddin)
 
@@ -10,40 +7,25 @@ include(GenerateHH3)
 include(Fxconv)
 find_package(Gint 2.9 REQUIRED)
 
-set(SOURCES
-  src/main.cpp
-  src/cinput.cpp
-  src/cdateinput.cpp
-  # ...
-)
-# Shared assets, fx-9860G-only assets and fx-CG-50-only assets
-set(ASSETS
-  # ...
-)
-set(ASSETS_fx
-  assets-fx/example.png
-  # ...
-)
-set(ASSETS_cg
-  assets-cg/example.png
-  # ...
+set(SHARED_SOURCES
+    src/shared/cinput.cpp
+    src/shared/cdateinput.cpp
 )
 
-fxconv_declare_assets(${ASSETS} ${ASSETS_fx} ${ASSETS_cg} WITH_METADATA)
+set(APPS "cinput_demo" "physchem" "app_template")
 
-add_executable(myaddin ${SOURCES} ${ASSETS} ${ASSETS_${FXSDK_PLATFORM}})
-target_compile_options(myaddin PRIVATE -Wall -Wextra -Os -g -flto=auto -fno-exceptions)
-target_link_libraries(myaddin Gint::Gint stdc++)
+foreach(APP ${APPS})
+    set(APP_SOURCES src/apps/${APP}/main.cpp ${SHARED_SOURCES})
+    add_executable(${APP} ${APP_SOURCES})
+    target_compile_options(${APP} PRIVATE -Wall -Wextra -Os -g -flto=auto -fno-exceptions)
+    target_link_libraries(${APP} Gint::Gint stdc++)
+    target_include_directories(${APP} PRIVATE src/shared)
 
-if("${FXSDK_PLATFORM_LONG}" STREQUAL fx9860G)
-  generate_g1a(TARGET myaddin OUTPUT "MyAddin.g1a"
-    NAME "MyAddin" ICON assets-fx/icon.png)
-elseif("${FXSDK_PLATFORM_LONG}" STREQUAL fxCG50)
-  generate_g3a(TARGET myaddin OUTPUT "MyAddin.g3a"
-    NAME "MyAddin" ICONS assets-cg/icon-uns.png assets-cg/icon-sel.png)
-elseif("${FXSDK_PLATFORM_LONG}" STREQUAL fx9860G_G3A)
-  generate_g3a(TARGET myaddin OUTPUT "MyAddin-fx.g3a"
-    NAME "MyAddin-fx" ICONS assets-cg/icon-uns.png assets-cg/icon-sel.png)
-elseif("${FXSDK_PLATFORM_LONG}" STREQUAL fxCP)
-  generate_hh3(TARGET myaddin OUTPUT "MyAddin.hh3")
-endif()
+    if("${FXSDK_PLATFORM_LONG}" STREQUAL fx9860G)
+        generate_g1a(TARGET ${APP} OUTPUT "${APP}.g1a" NAME "${APP}")
+    elseif("${FXSDK_PLATFORM_LONG}" STREQUAL fxCG50)
+        generate_g3a(TARGET ${APP} OUTPUT "${APP}.g3a" NAME "${APP}")
+    elseif("${FXSDK_PLATFORM_LONG}" STREQUAL fxCP)
+        generate_hh3(TARGET ${APP} OUTPUT "${APP}.hh3")
+    endif()
+endforeach()

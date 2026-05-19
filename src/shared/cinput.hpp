@@ -47,7 +47,7 @@ struct Theme {
     color_t check;
 };
 
-extern const std::map<std::string, Theme> THEMES;
+extern std::map<std::string, Theme> THEMES;
 
 const Theme& get_theme(const std::string& name);
 
