@@ -266,8 +266,10 @@ void TimePicker::enforce_boundaries() {
             if (offset_h >= m_max_time->hour && offset_m > m_max_time->minute) offset_m = (float)m_max_time->minute;
         }
     } else {
-        while (offset_h < 0) offset_h += 24; while (offset_h >= 24) offset_h -= 24;
-        while (offset_m < 0) offset_m += 60; while (offset_m >= 60) offset_m -= 60;
+        while (offset_h < 0) offset_h += 24;
+        while (offset_h >= 24) offset_h -= 24;
+        while (offset_m < 0) offset_m += 60;
+        while (offset_m >= 60) offset_m -= 60;
     }
 }
 

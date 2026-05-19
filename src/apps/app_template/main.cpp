@@ -8,9 +8,12 @@
 
 using namespace cinput;
 
+#if defined(SIMULATOR_NATIVE) || defined(SIMULATOR_WEB)
+extern "C" void simulator_init();
+#endif
+
 int main() {
 #if defined(SIMULATOR_NATIVE) || defined(SIMULATOR_WEB)
-    extern "C" void simulator_init();
     simulator_init();
 #endif
 

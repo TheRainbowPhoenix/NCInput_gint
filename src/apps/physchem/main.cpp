@@ -9,6 +9,8 @@
 #include <vector>
 #include <map>
 #include <functional>
+#include <cstring>
+#include <cstdlib>
 #include "cinput.hpp"
 
 using namespace cinput;
@@ -84,21 +86,21 @@ public:
 
     void solve() {
         if (!is_solvable()) { error_str = "Fill all fields"; return; }
-        try {
-            auto args = values;
-            for (auto const& [k, v] : CONSTANTS) args[k] = v;
-            if (eq->formulas.count(target_var)) {
-                double val = eq->formulas.at(target_var)(args);
+        auto args = values;
+        for (auto const& [k, v] : CONSTANTS) args[k] = v;
+        if (eq->formulas.count(target_var)) {
+            double val = eq->formulas.at(target_var)(args);
+            if (std::isnan(val) || std::isinf(val)) {
+                error_str = "Math Error";
+                result_str = "Error";
+            } else {
                 char buf[32];
                 sprintf(buf, "%.5g %s", val, eq->units.count(target_var) ? eq->units.at(target_var).c_str() : "");
                 result_str = buf;
                 error_str = "";
-            } else {
-                error_str = "No formula";
             }
-        } catch (...) {
-            error_str = "Math Error";
-            result_str = "Error";
+        } else {
+            error_str = "No formula";
         }
     }
 
@@ -107,10 +109,8 @@ public:
         std::string prompt = "Enter " + var_name + " (" + unit + "):";
         InputResult res = input(prompt, "numeric_float", THEME_NAME, "qwerty", KEYEV_TOUCH_UP);
         if (res.success) {
-            try {
-                values[var_name] = std::stod(res.value);
-                if (is_solvable()) solve();
-            } catch (...) {}
+            values[var_name] = std::atof(res.value.c_str());
+            if (is_solvable()) solve();
         }
     }
 
@@ -167,7 +167,10 @@ public:
                 if (std::isnan(values[var])) strcpy(val_buf, "");
                 else sprintf(val_buf, "%.5g", values[var]);
                 drect(margin, inp_y, SCREEN_W - margin, inp_y + 35, bc);
-                if (!highlight) ::drect_border(margin, inp_y, SCREEN_W - margin, inp_y + 35, (int)C_NONE, 1, (int)border);
+                if (!highlight) {
+                    (void)highlight; // Suppress unused warning just in case, though it is used now
+                    ::drect_border(margin, inp_y, SCREEN_W - margin, inp_y + 35, (int)C_NONE, 1, (int)border);
+                }
                 color_t col = highlight ? t.txt_acc : t.txt;
                 dtext_opt(20, inp_y + 17, col, (int)C_NONE, DTEXT_LEFT, DTEXT_MIDDLE, val_buf, -1);
                 if (std::isnan(values[var])) dtext_opt(SCREEN_W-20, inp_y + 17, t.txt_dim, (int)C_NONE, DTEXT_RIGHT, DTEXT_MIDDLE, "Tap to edit", -1);
@@ -178,9 +181,10 @@ public:
         if (y + 50 > HEADER_H && y < SCREEN_H) {
             bool ready = is_solvable();
             bool highlight = (focus_index == (int)input_vars.size() + 1);
-            color_t fill_c = ready ? t.accent : t.key_spec;
-            color_t txt_c = ready ? t.txt_acc : t.txt_dim;
+            color_t fill_c = highlight ? t.accent : (ready ? t.key_spec : t.modal_bg);
+            color_t txt_c = highlight ? t.txt_acc : (ready ? t.txt : t.txt_dim);
             drect(margin, y, SCREEN_W - margin, y + 40, fill_c);
+            if (!highlight) ::drect_border(margin, y, SCREEN_W - margin, y + 40, (int)C_NONE, 1, (int)t.key_spec);
             dtext_opt(SCREEN_W/2, y + 20, txt_c, (int)C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, "SOLVE", -1);
         }
         y += 60;
@@ -260,9 +264,12 @@ private:
 // MAIN APP
 // =============================================================================
 
+#if defined(SIMULATOR_NATIVE) || defined(SIMULATOR_WEB)
+extern "C" void simulator_init();
+#endif
+
 int main() {
 #if defined(SIMULATOR_NATIVE) || defined(SIMULATOR_WEB)
-    extern "C" void simulator_init();
     simulator_init();
 #endif
 
