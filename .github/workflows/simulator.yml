@@ -31,6 +31,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: Build
       run: |
+        vcpkg install sdl2:x64-windows
         mkdir simulator/build
         cd simulator/build
         cmake .. -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" -A x64
