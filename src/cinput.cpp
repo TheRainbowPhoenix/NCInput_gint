@@ -5,24 +5,13 @@
 #include <gint/clock.h>
 #include <cmath>
 #include <cctype>
+#include <algorithm>
 
 namespace cinput {
 
-// Helper function to draw a rectangle with a border since gint doesn't seem to have it
-static void drect_border(int x1, int y1, int x2, int y2, int fill_color, int border_width, int border_color) {
-    if (fill_color != C_NONE) {
-        drect(x1 + border_width, y1 + border_width, x2 - border_width, y2 - border_width, fill_color);
-    }
-    if (border_color != C_NONE && border_width > 0) {
-        // Top
-        drect(x1, y1, x2, y1 + border_width - 1, border_color);
-        // Bottom
-        drect(x1, y2 - border_width + 1, x2, y2, border_color);
-        // Left
-        drect(x1, y1 + border_width, x1 + border_width - 1, y2 - border_width, border_color);
-        // Right
-        drect(x2 - border_width + 1, y1 + border_width, x2, y2 - border_width, border_color);
-    }
+// Helper to avoid ambiguity with gint's drect_border
+static void cinput_drect_border_helper(int x1, int y1, int x2, int y2, int fill_color, int width, int border_color) {
+    ::drect_border(x1, y1, x2, y2, fill_color, width, border_color);
 }
 
 const std::map<std::string, Theme> THEMES = {
@@ -72,7 +61,8 @@ const Theme& get_theme(const std::string& name) {
     if (it != THEMES.end()) {
         return it->second;
     }
-    return THEMES.find("light")->second;
+    auto light_it = THEMES.find("light");
+    return light_it->second;
 }
 
 // =============================================================================
@@ -311,12 +301,12 @@ void ListView::draw_item(int x, int y, const ListItem& item, bool is_selected) {
     int h = item._h;
     if (item.type == "section") {
         drect(x, y, x + m_rect.w, y + h, m_theme.key_spec);
-        drect_border(x, y, x + m_rect.w, y + h, C_NONE, 1, m_theme.key_spec);
-        dtext_opt(x + 10, y + h / 2, m_theme.txt_dim, C_NONE, DTEXT_LEFT, DTEXT_MIDDLE, item.text.c_str(), -1);
+        cinput_drect_border_helper(x, y, x + m_rect.w, y + h, (int)C_NONE, 1, (int)m_theme.key_spec);
+        dtext_opt(x + 10, y + h / 2, m_theme.txt_dim, (int)C_NONE, DTEXT_LEFT, DTEXT_MIDDLE, item.text.c_str(), -1);
     } else {
         color_t bg = is_selected ? m_theme.hl : m_theme.modal_bg;
         drect(x, y, x + m_rect.w, y + h, bg);
-        drect_border(x, y, x + m_rect.w, y + h, C_NONE, 1, m_theme.key_spec);
+        cinput_drect_border_helper(x, y, x + m_rect.w, y + h, (int)C_NONE, 1, (int)m_theme.key_spec);
 
         int x_off = 20;
         if (item.checked) {
@@ -324,7 +314,7 @@ void ListView::draw_item(int x, int y, const ListItem& item, bool is_selected) {
             x_off = 40;
         }
 
-        dtext_opt(x + x_off, y + h / 2, m_theme.txt, C_NONE, DTEXT_LEFT, DTEXT_MIDDLE, item.text.c_str(), -1);
+        dtext_opt(x + x_off, y + h / 2, m_theme.txt, (int)C_NONE, DTEXT_LEFT, DTEXT_MIDDLE, item.text.c_str(), -1);
 
         if (item.arrow) {
             int ar_x = x + m_rect.w - 15;
@@ -406,7 +396,8 @@ Keyboard::Keyboard(int default_tab, bool enable_tabs, NumpadOpts numpad_opts, co
     if (it != LAYOUTS.end()) {
         m_layout_alpha = it->second;
     } else {
-        m_layout_alpha = LAYOUTS.find("qwerty")->second;
+        auto qwerty_it = LAYOUTS.find("qwerty");
+        m_layout_alpha = qwerty_it->second;
     }
     if (layout != "qwerty") {
         m_tabs[0] = (layout.length() <= 3) ? layout : "Txt";
@@ -425,8 +416,8 @@ void Keyboard::draw_key(int x, int y, int w, int h, const std::string& label, bo
     color_t border_col = m_theme.key_spec;
 
     drect(x + 1, y + 1, x + w - 1, y + h - 1, bg);
-    drect_border(x, y, x + w, y + h, C_NONE, 1, border_col);
-    dtext_opt(x + w/2, y + h/2, txt_col, C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, label.c_str(), -1);
+    cinput_drect_border_helper(x, y, x + w, y + h, (int)C_NONE, 1, (int)border_col);
+    dtext_opt(x + w/2, y + h/2, txt_col, (int)C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, label.c_str(), -1);
 }
 
 void Keyboard::draw_tabs() {
@@ -437,11 +428,11 @@ void Keyboard::draw_tabs() {
         bool is_active = (i == m_current_tab);
         color_t bg = is_active ? m_theme.kbd_bg : m_theme.key_spec;
         drect(tx, m_y, tx + tab_w, m_y + TAB_H, bg);
-        drect_border(tx, m_y, tx + tab_w, m_y + TAB_H, C_NONE, 1, border_col);
+        cinput_drect_border_helper(tx, m_y, tx + tab_w, m_y + TAB_H, (int)C_NONE, 1, (int)border_col);
         if (is_active) {
             drect(tx + 1, m_y + TAB_H - 1, tx + tab_w - 1, m_y + TAB_H + 1, m_theme.kbd_bg);
         }
-        dtext_opt(tx + tab_w/2, m_y + TAB_H/2, m_theme.txt, C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, m_tabs[i].c_str(), -1);
+        dtext_opt(tx + tab_w/2, m_y + TAB_H/2, m_theme.txt, (int)C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, m_tabs[i].c_str(), -1);
     }
 }
 
@@ -666,7 +657,7 @@ void ListPicker::draw_nav_btn(int x, int w, int h, const std::string& type, bool
     color_t bg = is_pressed ? m_theme.hl : m_theme.key_spec;
 
     drect(x, y, x + w, SCREEN_H, bg);
-    drect_border(x, y, x + w, SCREEN_H, C_NONE, 1, m_theme.key_spec);
+    cinput_drect_border_helper(x, y, x + w, SCREEN_H, (int)C_NONE, 1, (int)m_theme.key_spec);
 
     int cx = x + w/2, cy = y + h/2;
     color_t col = m_theme.txt;
@@ -674,11 +665,11 @@ void ListPicker::draw_nav_btn(int x, int w, int h, const std::string& type, bool
     if (type == "UP") {
         int px[] = {cx, cx-5, cx+5};
         int py[] = {cy-5, cy+5, cy+5};
-        dpoly(px, py, 3, col, C_NONE);
+        dpoly(px, py, 3, col, (int)C_NONE);
     } else if (type == "DOWN") {
         int px[] = {cx, cx-5, cx+5};
         int py[] = {cy+5, cy-5, cy-5};
-        dpoly(px, py, 3, col, C_NONE);
+        dpoly(px, py, 3, col, (int)C_NONE);
     }
 }
 
@@ -708,7 +699,7 @@ void ListPicker::draw() {
 
     // Header
     drect(0, 0, SCREEN_W, m_header_h, m_theme.accent);
-    dtext_opt(SCREEN_W/2, m_header_h/2, m_theme.txt_acc, C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, m_prompt.c_str(), -1);
+    dtext_opt(SCREEN_W/2, m_header_h/2, m_theme.txt_acc, (int)C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, m_prompt.c_str(), -1);
     draw_close_icon(15, 15, 10, m_theme.txt_acc);
 
     // Footer
@@ -724,10 +715,10 @@ void ListPicker::draw() {
     int ok_rect_x = m_btn_w;
     int ok_rect_w = SCREEN_W - 2 * m_btn_w;
     drect(ok_rect_x, fy, ok_rect_x + ok_rect_w, SCREEN_H, ok_bg);
-    drect_border(ok_rect_x, fy, ok_rect_x + ok_rect_w, SCREEN_H, C_NONE, 1, m_theme.key_spec);
+    cinput_drect_border_helper(ok_rect_x, fy, ok_rect_x + ok_rect_w, SCREEN_H, (int)C_NONE, 1, (int)m_theme.key_spec);
 
     const char* label = m_multi ? "OK" : "Select";
-    dtext_opt(SCREEN_W/2, fy + m_footer_h/2, m_theme.txt, C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, label, -1);
+    dtext_opt(SCREEN_W/2, fy + m_footer_h/2, m_theme.txt, (int)C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, label, -1);
 }
 
 PickResult ListPicker::run() {
@@ -865,8 +856,8 @@ ConfirmationDialog::ConfirmationDialog(const std::string& title, const std::stri
 void ConfirmationDialog::draw_btn(int x, int y, int w, int h, const std::string& text, bool pressed) {
     color_t bg = pressed ? m_theme.hl : m_theme.key_spec;
     drect(x, y, x + w, y + h, bg);
-    drect_border(x, y, x + w, y + h, C_NONE, 1, m_theme.key_spec);
-    dtext_opt(x + w/2, y + h/2, m_theme.txt, C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, text.c_str(), -1);
+    cinput_drect_border_helper(x, y, x + w, y + h, (int)C_NONE, 1, (int)m_theme.key_spec);
+    dtext_opt(x + w/2, y + h/2, m_theme.txt, (int)C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, text.c_str(), -1);
 }
 
 void ConfirmationDialog::draw(bool btn_ok_pressed, bool btn_cn_pressed) {
@@ -874,11 +865,11 @@ void ConfirmationDialog::draw(bool btn_ok_pressed, bool btn_cn_pressed) {
 
     // Header
     drect(0, 0, SCREEN_W, m_header_h, m_theme.accent);
-    dtext_opt(SCREEN_W/2, m_header_h/2, m_theme.txt_acc, C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, m_title.c_str(), -1);
+    dtext_opt(SCREEN_W/2, m_header_h/2, m_theme.txt_acc, (int)C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, m_title.c_str(), -1);
 
     // Body
     int cy = (SCREEN_H - m_header_h - m_footer_h) / 2 + m_header_h;
-    dtext_opt(SCREEN_W/2, cy, m_theme.txt, C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, m_body.c_str(), -1);
+    dtext_opt(SCREEN_W/2, cy, m_theme.txt, (int)C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, m_body.c_str(), -1);
 
     // Footer
     int fy = SCREEN_H - m_footer_h;
@@ -977,7 +968,7 @@ InputResult input(const std::string& prompt, const std::string& type, const std:
 
         // Header
         drect(0, 0, SCREEN_W, PICK_HEADER_H, t.accent);
-        dtext_opt(SCREEN_W/2, PICK_HEADER_H/2, t.txt_acc, C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, prompt.c_str(), -1);
+        dtext_opt(SCREEN_W/2, PICK_HEADER_H/2, t.txt_acc, (int)C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, prompt.c_str(), -1);
 
         // Close Button
         dline(15, 15, 25, 25, t.txt_acc);
@@ -987,7 +978,7 @@ InputResult input(const std::string& prompt, const std::string& type, const std:
 
         // Input Box
         int box_y = 60, box_h = 40;
-        drect_border(10, box_y, SCREEN_W - 10, box_y + box_h, t.hl, 2, t.txt);
+        cinput_drect_border_helper(10, box_y, SCREEN_W - 10, box_y + box_h, (int)t.hl, 2, (int)t.txt);
         std::string display_text = text + "_";
         dtext(15, box_y + 10, t.txt, display_text.c_str());
 
