@@ -28,6 +28,17 @@ typedef struct {
 #define KEY_MENU  8
 #define KEY_F1    9
 
+#define KEY_0 10
+#define KEY_1 11
+#define KEY_2 12
+#define KEY_3 13
+#define KEY_4 14
+#define KEY_5 15
+#define KEY_6 16
+#define KEY_7 17
+#define KEY_8 18
+#define KEY_9 19
+
 #ifdef __cplusplus
 extern "C" {
 #endif

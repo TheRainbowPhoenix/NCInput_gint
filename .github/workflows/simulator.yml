@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  build-native:
+  build-linux:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -19,11 +19,29 @@ jobs:
         cd simulator/build
         cmake ..
         make
-    - name: Upload Native Artifact
+    - name: Upload Linux Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: simulator-native
+        name: simulator-linux
         path: simulator/build/simulator
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build
+      run: |
+        mkdir simulator/build
+        cd simulator/build
+        cmake .. -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" -A x64
+        cmake --build . --config Release
+    - name: Upload Windows Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: simulator-windows
+        path: |
+          simulator/build/Release/simulator.exe
+          simulator/build/Release/*.dll
 
   build-web:
     runs-on: ubuntu-latest

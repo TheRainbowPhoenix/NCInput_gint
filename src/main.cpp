@@ -4,7 +4,9 @@
 #include <gint/clock.h>
 #include <string>
 #include <vector>
+#include <cstdio>
 #include "cinput.hpp"
+#include "cdateinput.hpp"
 
 using namespace cinput;
 
@@ -100,6 +102,9 @@ int main() {
                 "Integer Input Demo",
                 "Float Input Demo",
                 "List Picker Demo",
+                "Date Picker Demo",
+                "Time Picker Demo",
+                "French Date Picker",
                 "Confirmation Demo",
                 "Switch Theme (" + themes[(curr_theme_idx+1)%themes.size()] + ")",
                 "Switch Layout (" + layouts[(curr_layout_idx+1)%layouts.size()] + ")",
@@ -124,7 +129,7 @@ int main() {
                         std::string typed = "You typed: " + res.value;
                         dtext_opt(SCREEN_W/2, SCREEN_H/2, t.txt, (int)C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, typed.c_str(), -1);
                         dupdate();
-                        getkey();
+                        sleep_ms(2000);
                     }
                 } else if (choice == "Integer Input Demo") {
                     InputResult res = input("Enter Integer:", "numeric_int negative", current_theme_name);
@@ -133,7 +138,7 @@ int main() {
                         std::string val = "Value: " + res.value;
                         dtext_opt(SCREEN_W/2, SCREEN_H/2, t.txt, (int)C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, val.c_str(), -1);
                         dupdate();
-                        getkey();
+                        sleep_ms(2000);
                     }
                 } else if (choice == "Float Input Demo") {
                     InputResult res = input("Enter Float:", "numeric_float", current_theme_name);
@@ -142,7 +147,7 @@ int main() {
                         std::string val = "Value: " + res.value;
                         dtext_opt(SCREEN_W/2, SCREEN_H/2, t.txt, (int)C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, val.c_str(), -1);
                         dupdate();
-                        getkey();
+                        sleep_ms(2000);
                     }
                 } else if (choice == "List Picker Demo") {
                     std::vector<std::string> demo_opts;
@@ -156,7 +161,50 @@ int main() {
                         }
                         dtext_opt(10, SCREEN_H/2, t.txt, (int)C_NONE, DTEXT_LEFT, DTEXT_MIDDLE, res_str.c_str(), SCREEN_W-20);
                         dupdate();
-                        getkey();
+                        sleep_ms(2000);
+                    }
+                } else if (choice == "Date Picker Demo") {
+                    cdateinput::Date* res = cdateinput::datepick("Select Date", 2026, 5, 15, current_theme_name);
+                    if (res) {
+                        dclear(t.modal_bg);
+                        char buf[64]; sprintf(buf, "Selected: %04d-%02d-%02d", res->year, res->month, res->day);
+                        dtext_opt(SCREEN_W/2, SCREEN_H/2, t.txt, (int)C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, buf, -1);
+                        dupdate(); delete res;
+                        sleep_ms(2000);
+                    }
+                } else if (choice == "Time Picker Demo") {
+                    cdateinput::Time* res = cdateinput::timepick("Select Time", 12, 30, current_theme_name);
+                    if (res) {
+                        dclear(t.modal_bg);
+                        char buf[64]; sprintf(buf, "Selected: %02d:%02d", res->hour, res->minute);
+                        dtext_opt(SCREEN_W/2, SCREEN_H/2, t.txt, (int)C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, buf, -1);
+                        dupdate(); delete res;
+                        sleep_ms(2000);
+                    }
+                } else if (choice == "French Date Picker") {
+                    std::vector<std::string> old_days = cdateinput::DAY_NAMES;
+                    std::vector<std::string> old_dows = cdateinput::DOW_SINGLE;
+                    std::vector<std::string> old_months = cdateinput::MONTH_NAMES;
+                    std::vector<std::string> old_months_long = cdateinput::MONTH_NAMES_LONG;
+
+                    cdateinput::DAY_NAMES = {"Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"};
+                    cdateinput::DOW_SINGLE = {"D", "L", "M", "M", "J", "V", "S"};
+                    cdateinput::MONTH_NAMES = {"", "Jan", "Fev", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Dec"};
+                    cdateinput::MONTH_NAMES_LONG = {"", "Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Decembre"};
+
+                    cdateinput::Date* res = cdateinput::datepick("Date de naissance", 2000, 1, 1, current_theme_name);
+
+                    cdateinput::DAY_NAMES = old_days;
+                    cdateinput::DOW_SINGLE = old_dows;
+                    cdateinput::MONTH_NAMES = old_months;
+                    cdateinput::MONTH_NAMES_LONG = old_months_long;
+
+                    if (res) {
+                        dclear(t.modal_bg);
+                        char buf[64]; sprintf(buf, "Choisi: %04d-%02d-%02d", res->year, res->month, res->day);
+                        dtext_opt(SCREEN_W/2, SCREEN_H/2, t.txt, (int)C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, buf, -1);
+                        dupdate(); delete res;
+                        sleep_ms(2000);
                     }
                 } else if (choice == "Confirmation Demo") {
                     bool res = ask("Confirmation", "Are you sure?", "Yes", "No", current_theme_name);
@@ -164,7 +212,7 @@ int main() {
                     const char* res_txt = res ? "You clicked Yes" : "You clicked No";
                     dtext_opt(SCREEN_W/2, SCREEN_H/2, t.txt, (int)C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, res_txt, -1);
                     dupdate();
-                    getkey();
+                    sleep_ms(2000);
                 }
             }
         }

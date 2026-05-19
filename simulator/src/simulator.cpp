@@ -272,6 +272,16 @@ void dupdate(void) {
                 case SDLK_RETURN: key = KEY_EXE; break;
                 case SDLK_ESCAPE: key = KEY_EXIT; break;
                 case SDLK_BACKSPACE: key = KEY_DEL; break;
+                case SDLK_0: key = KEY_0; break;
+                case SDLK_1: key = KEY_1; break;
+                case SDLK_2: key = KEY_2; break;
+                case SDLK_3: key = KEY_3; break;
+                case SDLK_4: key = KEY_4; break;
+                case SDLK_5: key = KEY_5; break;
+                case SDLK_6: key = KEY_6; break;
+                case SDLK_7: key = KEY_7; break;
+                case SDLK_8: key = KEY_8; break;
+                case SDLK_9: key = KEY_9; break;
             }
             if (key) {
                 kev.type = KEYEV_DOWN;
@@ -289,6 +299,16 @@ void dupdate(void) {
                 case SDLK_RETURN: key = KEY_EXE; break;
                 case SDLK_ESCAPE: key = KEY_EXIT; break;
                 case SDLK_BACKSPACE: key = KEY_DEL; break;
+                case SDLK_0: key = KEY_0; break;
+                case SDLK_1: key = KEY_1; break;
+                case SDLK_2: key = KEY_2; break;
+                case SDLK_3: key = KEY_3; break;
+                case SDLK_4: key = KEY_4; break;
+                case SDLK_5: key = KEY_5; break;
+                case SDLK_6: key = KEY_6; break;
+                case SDLK_7: key = KEY_7; break;
+                case SDLK_8: key = KEY_8; break;
+                case SDLK_9: key = KEY_9; break;
             }
             if (key) {
                 pressed_keys[key] = false;
