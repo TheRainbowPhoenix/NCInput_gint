@@ -1,4 +1,5 @@
 #include <SDL2/SDL.h>
+#include "cinput.hpp"
 #include <gint/display.h>
 #include <gint/keyboard.h>
 #include <gint/rtc.h>
@@ -12,7 +13,6 @@
 static SDL_Window* window = nullptr;
 static SDL_Renderer* renderer = nullptr;
 static SDL_Texture* screen_texture = nullptr;
-static uint32_t screen_buffer[SCREEN_W * SCREEN_H];
 
 // --- Keyboard State ---
 static std::queue<key_event_t> event_queue;

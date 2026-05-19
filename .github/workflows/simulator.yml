@@ -29,8 +29,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - name: Setup Emscripten
-      uses: mymindstorm/setup-emsdk@v11
+    - name: Setup emsdk
+      uses: emscripten-core/setup-emsdk@v15
+      with:
+        version: 5.0.1
+        emsdk-version: 5.0.5
+        actions-cache-folder: 'emsdk-cache'
+    - name: Verify
+      run: emcc -v
     - name: Build Web
       run: |
         cd simulator
