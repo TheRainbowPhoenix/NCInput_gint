@@ -44,8 +44,14 @@ jobs:
         cd build_web
         emcmake cmake ..
         emmake make
+    - name: Prepare Artifacts
+      run: |
+        mkdir -p simulator/dist
+        cp simulator/build_web/simulator_web.html simulator/dist/index.html
+        cp simulator/build_web/simulator_web.js simulator/dist/
+        cp simulator/build_web/simulator_web.wasm simulator/dist/
     - name: Upload Web Artifact
       uses: actions/upload-artifact@v4
       with:
         name: simulator-web
-        path: simulator/build_web/
+        path: simulator/dist/

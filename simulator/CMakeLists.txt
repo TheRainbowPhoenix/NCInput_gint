@@ -28,7 +28,8 @@ endif()
 
 if(IS_WEB)
     add_executable(simulator_web ${SOURCES})
-    set_target_properties(simulator_web PROPERTIES SUFFIX ".js")
+    # For Emscripten, setting the suffix to .html makes it generate the HTML, JS and WASM
+    set_target_properties(simulator_web PROPERTIES SUFFIX ".html")
     target_compile_options(simulator_web PRIVATE -sUSE_SDL=2)
     target_link_options(simulator_web PRIVATE
         -sUSE_SDL=2
