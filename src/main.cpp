@@ -24,7 +24,15 @@ void draw_header(const std::string& theme_name, const std::string& title = "Demo
     }
 }
 
+#if defined(SIMULATOR_NATIVE) || defined(SIMULATOR_WEB)
+extern "C" void simulator_init();
+#endif
+
 int main() {
+#if defined(SIMULATOR_NATIVE) || defined(SIMULATOR_WEB)
+    simulator_init();
+#endif
+
     std::vector<std::string> themes = {"light", "dark", "grey"};
     std::vector<std::string> layouts = {"qwerty", "azerty", "qwertz", "abc"};
 

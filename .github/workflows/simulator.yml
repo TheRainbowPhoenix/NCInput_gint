@@ -1,0 +1,45 @@
+name: Build Simulator
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-native:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install SDL2
+      run: sudo apt-get update && sudo apt-get install -y libsdl2-dev
+    - name: Build
+      run: |
+        mkdir -p simulator/build
+        cd simulator/build
+        cmake ..
+        make
+    - name: Upload Native Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: simulator-native
+        path: simulator/build/simulator
+
+  build-web:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup Emscripten
+      uses: mymindstorm/setup-emsdk@v11
+    - name: Build Web
+      run: |
+        cd simulator
+        mkdir build_web
+        cd build_web
+        emcmake cmake ..
+        emmake make
+    - name: Upload Web Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: simulator-web
+        path: simulator/build_web/
