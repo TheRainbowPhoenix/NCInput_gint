@@ -48,15 +48,17 @@ const Theme& get_theme(const String& name);
 
 struct ListItem {
     String text;
-    String type = "item"; // "item" or "section"
-    int height = 0;            // 0 means use default
-    bool checked = false;
-    bool arrow = false;
-    int idx = -1;
+    String type;
+    int height;
+    bool checked;
+    bool arrow;
+    int idx;
 
     // Internal layout state
-    int _h = 0;
-    int _y = 0;
+    int _h;
+    int _y;
+
+    ListItem() : type("item"), height(0), checked(false), arrow(false), idx(-1), _h(0), _y(0) {}
 };
 
 class ListView {
@@ -66,6 +68,7 @@ public:
         String type; // "click", "long"
         int index;
         ListItem item;
+        Action() : index(-1) {}
     };
 
     ListView(Rect rect, const Vector<ListItem>& items, int row_h = 40, const String& theme = "light", int headers_h = -1);
@@ -88,22 +91,22 @@ public:
     int m_headers_h;
     const Theme& m_theme;
 
-    int m_total_h = 0;
-    int m_selected_index = -1;
-    int m_scroll_y = 0;
-    int m_max_scroll = 0;
+    int m_total_h;
+    int m_selected_index;
+    int m_scroll_y;
+    int m_max_scroll;
 
     // Touch State
-    bool m_is_dragging = false;
-    int m_touch_start_y = 0;
-    int m_touch_start_idx = 0;
-    uint32_t m_touch_start_ticks = 0;
-    int m_touch_initial_item_idx = -1;
-    bool m_long_press_triggered = false;
+    bool m_is_dragging;
+    int m_touch_start_y;
+    int m_touch_start_idx;
+    uint32_t m_touch_start_ticks;
+    int m_touch_initial_item_idx;
+    bool m_long_press_triggered;
 
     // Configuration
     int m_drag_threshold;
-    uint32_t m_long_press_delay_ticks = 64; // ~500ms at 128Hz
+    uint32_t m_long_press_delay_ticks;
 };
 
 // =============================================================================
@@ -111,8 +114,10 @@ public:
 // =============================================================================
 
 struct NumpadOpts {
-    bool is_float = true;
-    bool is_neg = true;
+    bool is_float;
+    bool is_neg;
+    NumpadOpts() : is_float(true), is_neg(true) {}
+    NumpadOpts(bool f, bool n) : is_float(f), is_neg(n) {}
 };
 
 struct KeyRect {
@@ -121,11 +126,15 @@ struct KeyRect {
     String val;
     bool is_spec;
     bool is_acc;
+
+    KeyRect() : x(0), y(0), w(0), h(0), is_spec(false), is_acc(false) {}
+    KeyRect(int _x, int _y, int _w, int _h, String _l, String _v, bool _s, bool _a)
+        : x(_x), y(_y), w(_w), h(_h), label(_l), val(_v), is_spec(_s), is_acc(_a) {}
 };
 
 class Keyboard {
 public:
-    Keyboard(int default_tab = 0, bool enable_tabs = true, NumpadOpts numpad_opts = {true, true}, const String& theme = "light", const String& layout = "qwerty");
+    Keyboard(int default_tab = 0, bool enable_tabs = true, NumpadOpts numpad_opts = NumpadOpts(), const String& theme = "light", const String& layout = "qwerty");
 
     void draw_key(int x, int y, int w, int h, const String& label, bool is_special = false, bool is_pressed = false, bool is_accent = false);
     void draw_tabs();
@@ -141,10 +150,10 @@ public:
     String update(const key_event_t& ev);
 
     int m_y;
-    bool m_visible = true;
+    bool m_visible;
     int m_current_tab;
     bool m_enable_tabs;
-    bool m_shift = false;
+    bool m_shift;
     String m_tabs[3];
     String m_last_key;
     NumpadOpts m_numpad_opts;
@@ -190,7 +199,7 @@ public:
     bool m_multi;
     int m_touch_mode;
     Vector<int> m_selected_indices; // for multi
-    int m_single_selection = 0;
+    int m_single_selection;
 
     int m_header_h;
     int m_footer_h;

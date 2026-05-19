@@ -3,6 +3,7 @@
 #include <gint/keyboard.h>
 #include <gint/display.h>
 #include <gint/clock.h>
+#include <cstdio>
 
 namespace cinput {
 
@@ -76,6 +77,17 @@ ListView::ListView(Rect rect, const Vector<ListItem>& items, int row_h, const St
     m_drag_threshold = m_base_row_h;
     m_long_press_delay_ticks = 64; // ~500ms at 128Hz
 
+    m_total_h = 0;
+    m_selected_index = -1;
+    m_scroll_y = 0;
+    m_max_scroll = 0;
+    m_is_dragging = false;
+    m_touch_start_y = 0;
+    m_touch_start_idx = 0;
+    m_touch_start_ticks = 0;
+    m_touch_initial_item_idx = -1;
+    m_long_press_triggered = false;
+
     recalc_layout();
     select_next(0, 1);
 }
@@ -147,7 +159,8 @@ bool ListView::update(const Vector<key_event_t>& events, Action& out_action) {
     const key_event_t* touch_down = nullptr;
     const key_event_t* current_touch = nullptr;
 
-    for (const auto& e : events) {
+    for (size_t i = 0; i < events.size(); ++i) {
+        const auto& e = events[i];
         if (e.type == KEYEV_TOUCH_DOWN) {
             touch_down = &e;
             current_touch = &e;
@@ -244,7 +257,9 @@ bool ListView::update(const Vector<key_event_t>& events, Action& out_action) {
                     if (m_items[release_idx].type != "section") {
                         m_selected_index = release_idx;
                         ensure_visible();
-                        out_action = {"click", release_idx, m_items[release_idx]};
+                        out_action.type = "click";
+                        out_action.index = release_idx;
+                        out_action.item = m_items[release_idx];
                         result = true;
                     }
                 }
@@ -263,7 +278,9 @@ bool ListView::update(const Vector<key_event_t>& events, Action& out_action) {
                 const auto& it = m_items[m_touch_initial_item_idx];
                 if (it.type != "section") {
                     m_selected_index = m_touch_initial_item_idx;
-                    out_action = {"long", m_touch_initial_item_idx, it};
+                    out_action.type = "long";
+                    out_action.index = m_touch_initial_item_idx;
+                    out_action.item = it;
                     return true;
                 }
             }
@@ -271,7 +288,8 @@ bool ListView::update(const Vector<key_event_t>& events, Action& out_action) {
     }
 
     // 5. Keys
-    for (const auto& e : events) {
+    for (size_t i = 0; i < events.size(); ++i) {
+        const auto& e = events[i];
         if (e.type == KEYEV_DOWN || (e.type == KEYEV_HOLD && (e.key == KEY_UP || e.key == KEY_DOWN))) {
             if (e.key == KEY_UP) {
                 select_next(m_selected_index - 1, -1);
@@ -279,7 +297,9 @@ bool ListView::update(const Vector<key_event_t>& events, Action& out_action) {
                 select_next(m_selected_index + 1, 1);
             } else if (e.key == KEY_EXE) {
                 if (m_selected_index >= 0) {
-                    out_action = {"click", m_selected_index, m_items[m_selected_index]};
+                    out_action.type = "click";
+                    out_action.index = m_selected_index;
+                    out_action.item = m_items[m_selected_index];
                     return true;
                 }
             }
@@ -381,10 +401,46 @@ struct LayoutEntry {
 };
 
 static const LayoutEntry LAYOUT_DATA[] = {
-    {"qwerty", {{{"1","2","3","4","5","6","7","8","9","0"}, {"q","w","e","r","t","y","u","i","o","p"}, {"a","s","d","f","g","h","j","k","l",":"}, {"z","x","c","v","b","n","m",",",".","_"}}}, {10,10,10,10}}},
-    {"azerty", {{{"1","2","3","4","5","6","7","8","9","0"}, {"a","z","e","r","t","y","u","i","o","p"}, {"q","s","d","f","g","h","j","k","l","m"}, {"w","x","c","v","b","n",",",".","_",":"}}}, {10,10,10,10}}},
-    {"qwertz", {{{"1","2","3","4","5","6","7","8","9","0"}, {"q","w","e","r","t","z","u","i","o","p"}, {"a","s","d","f","g","h","j","k","l",":"}, {"y","x","c","v","b","n","m",",",".","_"}}}, {10,10,10,10}}},
-    {"abc",    {{{"1","2","3","4","5","6","7","8","9","0"}, {"a","b","c","d","e","f","g","h","i","j"}, {"k","l","m","n","o","p","q","r","s","t"}, {"u","v","w","x","y","z",",",".","_",":"}}}, {10,10,10,10}}}
+    {
+        "qwerty",
+        {
+            {"1","2","3","4","5","6","7","8","9","0"},
+            {"q","w","e","r","t","y","u","i","o","p"},
+            {"a","s","d","f","g","h","j","k","l",":"},
+            {"z","x","c","v","b","n","m",",",".","_"}
+        },
+        {10, 10, 10, 10}
+    },
+    {
+        "azerty",
+        {
+            {"1","2","3","4","5","6","7","8","9","0"},
+            {"a","z","e","r","t","y","u","i","o","p"},
+            {"q","s","d","f","g","h","j","k","l","m"},
+            {"w","x","c","v","b","n",",",".","_",":"}
+        },
+        {10, 10, 10, 10}
+    },
+    {
+        "qwertz",
+        {
+            {"1","2","3","4","5","6","7","8","9","0"},
+            {"q","w","e","r","t","z","u","i","o","p"},
+            {"a","s","d","f","g","h","j","k","l",":"},
+            {"y","x","c","v","b","n","m",",",".","_"}
+        },
+        {10, 10, 10, 10}
+    },
+    {
+        "abc",
+        {
+            {"1","2","3","4","5","6","7","8","9","0"},
+            {"a","b","c","d","e","f","g","h","i","j"},
+            {"k","l","m","n","o","p","q","r","s","t"},
+            {"u","v","w","x","y","z",",",".","_",":"}
+        },
+        {10, 10, 10, 10}
+    }
 };
 
 static const char* LAYOUT_SYM_ROWS[4][10] = {
@@ -395,9 +451,14 @@ static const char* LAYOUT_SYM_ROWS[4][10] = {
 };
 
 Keyboard::Keyboard(int default_tab, bool enable_tabs, NumpadOpts numpad_opts, const String& theme, const String& layout)
-    : m_current_tab(default_tab), m_enable_tabs(enable_tabs), m_numpad_opts(numpad_opts), m_theme(get_theme(theme))
+    : m_theme(get_theme(theme))
 {
+    m_current_tab = default_tab;
+    m_enable_tabs = enable_tabs;
+    m_numpad_opts = numpad_opts;
     m_y = SCREEN_H - KBD_H;
+    m_visible = true;
+    m_shift = false;
     m_tabs[0] = "ABC";
     m_tabs[1] = "Sym";
     m_tabs[2] = "Math";
@@ -422,7 +483,10 @@ Keyboard::Keyboard(int default_tab, bool enable_tabs, NumpadOpts numpad_opts, co
         m_tabs[0] = (layout.length() <= 3) ? layout : String("Txt");
         // Upper case conversion
         char buf[16];
-        strcpy(buf, m_tabs[0].c_str());
+        size_t len = m_tabs[0].length();
+        if (len > 15) len = 15;
+        memcpy(buf, m_tabs[0].c_str(), len);
+        buf[len] = '\0';
         for (int i = 0; buf[i]; ++i) if (buf[i] >= 'a' && buf[i] <= 'z') buf[i] -= 32;
         m_tabs[0] = buf;
     }
@@ -471,7 +535,10 @@ void Keyboard::draw_grid() {
             String label = (m_current_tab == 1) ? String(LAYOUT_SYM_ROWS[r][c]) : m_layout_alpha[r][c];
             if (m_current_tab == 0 && m_shift) {
                 char buf[16];
-                strcpy(buf, label.c_str());
+                size_t len = label.length();
+                if (len > 15) len = 15;
+                memcpy(buf, label.c_str(), len);
+                buf[len] = '\0';
                 for (int i = 0; buf[i]; ++i) if (buf[i] >= 'a' && buf[i] <= 'z') buf[i] -= 32;
                 label = buf;
             }
@@ -501,7 +568,10 @@ String Keyboard::update_grid(int x, int y, int type) {
         String char_val = (m_current_tab == 1) ? String(LAYOUT_SYM_ROWS[row_idx][col_idx]) : m_layout_alpha[row_idx][col_idx];
         if (m_current_tab == 0 && m_shift) {
             char buf[16];
-            strcpy(buf, char_val.c_str());
+            size_t len = char_val.length();
+            if (len > 15) len = 15;
+            memcpy(buf, char_val.c_str(), len);
+            buf[len] = '\0';
             for (int i = 0; buf[i]; ++i) if (buf[i] >= 'a' && buf[i] <= 'z') buf[i] -= 32;
             char_val = buf;
         }
@@ -531,19 +601,19 @@ Vector<KeyRect> Keyboard::get_math_rects() {
 
     const char* l_chars[] = {"+", "-", "*", "/"};
     for (int i = 0; i < 4; ++i) {
-        keys.push_back({0, start_y + i*row_h, side_w, row_h, l_chars[i], l_chars[i], true, false});
+        keys.push_back(KeyRect(0, start_y + i*row_h, side_w, row_h, l_chars[i], l_chars[i], true, false));
     }
 
     struct RChar { const char* disp; const char* val; bool spec; bool acc; };
     RChar r_chars[] = {{"%", "%", true, false}, {" ", " ", true, false}, {"<-", "BACKSPACE", true, false}, {"EXE", "ENTER", false, true}};
     for (int i = 0; i < 4; ++i) {
-        keys.push_back({SCREEN_W - side_w, start_y + i*row_h, side_w, row_h, r_chars[i].disp, r_chars[i].val, r_chars[i].spec, r_chars[i].acc});
+        keys.push_back(KeyRect(SCREEN_W - side_w, start_y + i*row_h, side_w, row_h, r_chars[i].disp, r_chars[i].val, r_chars[i].spec, r_chars[i].acc));
     }
 
     const char* nums[3][3] = {{"1","2","3"}, {"4","5","6"}, {"7","8","9"}};
     for (int r = 0; r < 3; ++r) {
         for (int c = 0; c < 3; ++c) {
-            keys.push_back({side_w + c*numpad_w, start_y + r*row_h, numpad_w, row_h, nums[r][c], nums[r][c], false, false});
+            keys.push_back(KeyRect(side_w + c*numpad_w, start_y + r*row_h, numpad_w, row_h, nums[r][c], nums[r][c], false, false));
         }
     }
 
@@ -555,7 +625,7 @@ Vector<KeyRect> Keyboard::get_math_rects() {
     for (int i = 0; i < 5; ++i) {
         int w = widths[i] * unit_w;
         if (i == 4) w = (side_w + center_w) - cur_x;
-        keys.push_back({cur_x, y_bot, w, row_h, bot_row[i], bot_row[i], false, false});
+        keys.push_back(KeyRect(cur_x, y_bot, w, row_h, bot_row[i], bot_row[i], false, false));
         cur_x += w;
     }
     return keys;
@@ -569,13 +639,13 @@ Vector<KeyRect> Keyboard::get_numpad_rects() {
     int action_w = 80;
     int digit_w = (SCREEN_W - action_w) / 3;
 
-    keys.push_back({SCREEN_W - action_w, start_y, action_w, row_h, "<-", "BACKSPACE", true, false});
-    keys.push_back({SCREEN_W - action_w, start_y + row_h, action_w, row_h*3, "EXE", "ENTER", false, true});
+    keys.push_back(KeyRect(SCREEN_W - action_w, start_y, action_w, row_h, "<-", "BACKSPACE", true, false));
+    keys.push_back(KeyRect(SCREEN_W - action_w, start_y + row_h, action_w, row_h*3, "EXE", "ENTER", false, true));
 
     const char* nums[3][3] = {{"1","2","3"}, {"4","5","6"}, {"7","8","9"}};
     for (int r = 0; r < 3; ++r) {
         for (int c = 0; c < 3; ++c) {
-            keys.push_back({c*digit_w, start_y + r*row_h, digit_w, row_h, nums[r][c], nums[r][c], false, false});
+            keys.push_back(KeyRect(c*digit_w, start_y + r*row_h, digit_w, row_h, nums[r][c], nums[r][c], false, false));
         }
     }
 
@@ -591,7 +661,7 @@ Vector<KeyRect> Keyboard::get_numpad_rects() {
         for (int i = 0; i < (int)bot_keys.size(); ++i) {
             int w = bw;
             if (i == (int)bot_keys.size() - 1) w = (SCREEN_W - action_w) - cur_x;
-            keys.push_back({cur_x, y_bot, w, row_h, bot_keys[i], bot_keys[i], false, false});
+            keys.push_back(KeyRect(cur_x, y_bot, w, row_h, bot_keys[i], bot_keys[i], false, false));
             cur_x += w;
         }
     }
@@ -662,6 +732,8 @@ ListPicker::ListPicker(const Vector<String>& options, const String& prompt, cons
     m_footer_h = PICK_FOOTER_H;
     m_view_h = SCREEN_H - m_header_h - m_footer_h;
     m_btn_w = 60;
+    m_single_selection = 0;
+    m_last_action = "";
 
     Vector<ListItem> lv_items;
     for (int i = 0; i < (int)options.size(); ++i) {
@@ -769,7 +841,9 @@ PickResult ListPicker::run() {
         }
 
         if (keypressed(KEY_EXIT) || keypressed(KEY_DEL)) {
-            return {false, {}};
+            PickResult r;
+            r.success = false;
+            return r;
         }
 
         bool key_pg_up = keypressed(KEY_LEFT);
@@ -800,7 +874,7 @@ PickResult ListPicker::run() {
                 if (m_multi) {
                     int real_idx = action.item.idx;
                     bool found = false;
-                    for (auto it = m_selected_indices.begin(); it != m_selected_indices.end(); ++it) {
+                    for (int* it = m_selected_indices.begin(); it != m_selected_indices.end(); ++it) {
                         if (*it == real_idx) {
                             m_selected_indices.erase(it);
                             found = true;
@@ -809,9 +883,10 @@ PickResult ListPicker::run() {
                     }
                     if (!found) m_selected_indices.push_back(real_idx);
                 } else {
-                    Vector<String> res;
-                    res.push_back(m_options[action.item.idx]);
-                    return { true, res };
+                    PickResult res;
+                    res.success = true;
+                    res.values.push_back(m_options[action.item.idx]);
+                    return res;
                 }
             }
         }
@@ -829,7 +904,9 @@ PickResult ListPicker::run() {
 
         if (header_touch && header_touch->type == m_touch_mode) {
             if (!ignore_action && header_touch->x < 40) {
-                return {false, {}};
+                PickResult r;
+                r.success = false;
+                return r;
             }
         }
 
@@ -856,7 +933,8 @@ PickResult ListPicker::run() {
                 m_list_view->clamp_scroll();
             } else if (m_last_action == "OK") {
                 if (m_multi) {
-                    Vector<String> res;
+                    PickResult res;
+                    res.success = true;
                     // Simplified sorting for multi-selection result
                     Vector<int> sorted_indices = m_selected_indices;
                     for (int i = 0; i < (int)sorted_indices.size(); ++i) {
@@ -869,14 +947,15 @@ PickResult ListPicker::run() {
                         }
                     }
                     for (int i = 0; i < (int)sorted_indices.size(); ++i) {
-                        res.push_back(m_options[sorted_indices[i]]);
+                        res.values.push_back(m_options[sorted_indices[i]]);
                     }
-                    return {true, res};
+                    return res;
                 } else {
                     if (m_list_view->m_selected_index >= 0) {
-                        Vector<String> res;
-                        res.push_back(m_options[m_list_view->m_items[m_list_view->m_selected_index].idx]);
-                        return { true, res };
+                        PickResult res;
+                        res.success = true;
+                        res.values.push_back(m_options[m_list_view->m_items[m_list_view->m_selected_index].idx]);
+                        return res;
                     }
                 }
             }
@@ -892,8 +971,13 @@ PickResult ListPicker::run() {
 // =============================================================================
 
 ConfirmationDialog::ConfirmationDialog(const String& title, const String& body, const String& ok_text, const String& cancel_text, const String& theme, int touch_mode)
-    : m_title(title), m_body(body), m_ok_text(ok_text), m_cancel_text(cancel_text), m_theme(get_theme(theme)), m_touch_mode(touch_mode)
+    : m_theme(get_theme(theme))
 {
+    m_title = title;
+    m_body = body;
+    m_ok_text = ok_text;
+    m_cancel_text = cancel_text;
+    m_touch_mode = touch_mode;
     m_header_h = 40;
     m_footer_h = 45;
     m_btn_w = SCREEN_W / 2;
@@ -996,7 +1080,7 @@ InputResult input(const String& prompt, const String& type, const String& theme_
 
     int start_tab = 0;
     bool enable_tabs = true;
-    NumpadOpts numpad_opts = {true, true};
+    NumpadOpts numpad_opts;
 
     if (type.find("numeric_") != (size_t)-1) {
         enable_tabs = false;
@@ -1033,8 +1117,17 @@ InputResult input(const String& prompt, const String& type, const String& theme_
         dupdate();
         cleareventflips();
 
-        if (keypressed(KEY_EXIT)) return {false, ""};
-        if (keypressed(KEY_EXE)) return {true, text};
+        if (keypressed(KEY_EXIT)) {
+            InputResult r;
+            r.success = false;
+            return r;
+        }
+        if (keypressed(KEY_EXE)) {
+            InputResult r;
+            r.success = true;
+            r.value = text;
+            return r;
+        }
         if (keypressed(KEY_DEL) && !text.empty()) text.pop_back();
 
         key_event_t ev = pollevent();
@@ -1055,7 +1148,9 @@ InputResult input(const String& prompt, const String& type, const String& theme_
             if (touch_mode == KEYEV_TOUCH_DOWN && touch_latched) should_close = false;
 
             if (should_close && e.y < PICK_HEADER_H && e.x < 40) {
-                return {false, ""};
+                InputResult r;
+                r.success = false;
+                return r;
             }
 
             if (e.type == KEYEV_TOUCH_DOWN && !touch_latched) {
@@ -1064,7 +1159,10 @@ InputResult input(const String& prompt, const String& type, const String& theme_
                     String res = kbd.update(e);
                     if (!res.empty()) {
                         if (res == "ENTER") {
-                            return {true, text};
+                            InputResult r;
+                            r.success = true;
+                            r.value = text;
+                            return r;
                         } else if (res == "BACKSPACE") {
                             if (!text.empty()) text.pop_back();
                         } else if (res.length() == 1) {
