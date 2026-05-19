@@ -1,5 +1,6 @@
 # Build files
 /build*/
+/simulator/build*/
 /*.g1a
 /*.g3a
 /*.hh3
