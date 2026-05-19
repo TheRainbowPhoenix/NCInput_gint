@@ -1,6 +1,7 @@
 #include <gint/display.h>
 #include <gint/keyboard.h>
 #include <gint/rtc.h>
+#include <gint/clock.h>
 #include "cinput.hpp"
 
 using namespace cinput;
@@ -62,8 +63,8 @@ int main() {
         }
 
         // Event Processing
-        keyev_t e = pollevent();
-        std::vector<keyev_t> events;
+        key_event_t e = pollevent();
+        std::vector<key_event_t> events;
         while (e.type != KEYEV_NONE) {
             events.push_back(e);
             e = pollevent();

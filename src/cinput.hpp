@@ -81,7 +81,7 @@ public:
     void ensure_visible();
     void clamp_scroll();
 
-    bool update(const std::vector<keyev_t>& events, Action& out_action);
+    bool update(const std::vector<key_event_t>& events, Action& out_action);
 
     int get_index_at(int y);
     void draw_item(int x, int y, const ListItem& item, bool is_selected);
@@ -109,7 +109,7 @@ public:
 
     // Configuration
     int m_drag_threshold;
-    uint32_t m_long_press_delay_ticks = 500; // ms
+    uint32_t m_long_press_delay_ticks = 64; // ~500ms at 128Hz
 };
 
 // =============================================================================
@@ -144,7 +144,7 @@ public:
     std::string update_keys_from_rects(const std::vector<KeyRect>& rects, int x, int y, int type);
 
     void draw();
-    std::string update(const keyev_t& ev);
+    std::string update(const key_event_t& ev);
 
     int m_y;
     bool m_visible = true;

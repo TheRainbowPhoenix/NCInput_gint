@@ -2,10 +2,28 @@
 #include <gint/rtc.h>
 #include <gint/keyboard.h>
 #include <gint/display.h>
+#include <gint/clock.h>
 #include <cmath>
 #include <cctype>
 
 namespace cinput {
+
+// Helper function to draw a rectangle with a border since gint doesn't seem to have it
+static void drect_border(int x1, int y1, int x2, int y2, int fill_color, int border_width, int border_color) {
+    if (fill_color != C_NONE) {
+        drect(x1 + border_width, y1 + border_width, x2 - border_width, y2 - border_width, fill_color);
+    }
+    if (border_color != C_NONE && border_width > 0) {
+        // Top
+        drect(x1, y1, x2, y1 + border_width - 1, border_color);
+        // Bottom
+        drect(x1, y2 - border_width + 1, x2, y2, border_color);
+        // Left
+        drect(x1, y1 + border_width, x1 + border_width - 1, y2 - border_width, border_color);
+        // Right
+        drect(x2 - border_width + 1, y1 + border_width, x2, y2 - border_width, border_color);
+    }
+}
 
 const std::map<std::string, Theme> THEMES = {
     {"light", {
@@ -54,7 +72,7 @@ const Theme& get_theme(const std::string& name) {
     if (it != THEMES.end()) {
         return it->second;
     }
-    return THEMES.at("light");
+    return THEMES.find("light")->second;
 }
 
 // =============================================================================
@@ -66,6 +84,7 @@ ListView::ListView(Rect rect, const std::vector<ListItem>& items, int row_h, con
 {
     m_headers_h = (headers_h != -1) ? headers_h : row_h;
     m_drag_threshold = m_base_row_h;
+    m_long_press_delay_ticks = 64; // ~500ms at 128Hz
 
     recalc_layout();
     select_next(0, 1);
@@ -130,12 +149,12 @@ void ListView::clamp_scroll() {
     if (m_scroll_y < 0) m_scroll_y = 0;
 }
 
-bool ListView::update(const std::vector<keyev_t>& events, Action& out_action) {
+bool ListView::update(const std::vector<key_event_t>& events, Action& out_action) {
     uint32_t now = rtc_ticks();
 
-    const keyev_t* touch_up = nullptr;
-    const keyev_t* touch_down = nullptr;
-    const keyev_t* current_touch = nullptr;
+    const key_event_t* touch_up = nullptr;
+    const key_event_t* touch_down = nullptr;
+    const key_event_t* current_touch = nullptr;
 
     for (const auto& e : events) {
         if (e.type == KEYEV_TOUCH_DOWN) {
@@ -178,7 +197,7 @@ bool ListView::update(const std::vector<keyev_t>& events, Action& out_action) {
 
     // 2. Touch Move / Drag
     if (m_touch_start_ticks != 0) {
-        const keyev_t* last_pos = current_touch ? current_touch : touch_down;
+        const key_event_t* last_pos = current_touch ? current_touch : touch_down;
         if (last_pos) {
             int dy = last_pos->y - m_touch_start_y;
 
@@ -387,7 +406,7 @@ Keyboard::Keyboard(int default_tab, bool enable_tabs, NumpadOpts numpad_opts, co
     if (it != LAYOUTS.end()) {
         m_layout_alpha = it->second;
     } else {
-        m_layout_alpha = LAYOUTS.at("qwerty");
+        m_layout_alpha = LAYOUTS.find("qwerty")->second;
     }
     if (layout != "qwerty") {
         m_tabs[0] = (layout.length() <= 3) ? layout : "Txt";
@@ -592,7 +611,7 @@ void Keyboard::draw() {
     }
 }
 
-std::string Keyboard::update(const keyev_t& ev) {
+std::string Keyboard::update(const key_event_t& ev) {
     if (ev.type == KEYEV_TOUCH_DOWN) m_last_key = "";
     if (!m_visible) return "";
 
@@ -653,11 +672,13 @@ void ListPicker::draw_nav_btn(int x, int w, int h, const std::string& type, bool
     color_t col = m_theme.txt;
 
     if (type == "UP") {
-        int poly[] = {cx, cy-5, cx-5, cy+5, cx+5, cy+5};
-        dpoly(poly, 3, col, C_NONE);
+        int px[] = {cx, cx-5, cx+5};
+        int py[] = {cy-5, cy+5, cy+5};
+        dpoly(px, py, 3, col, C_NONE);
     } else if (type == "DOWN") {
-        int poly[] = {cx, cy+5, cx-5, cy-5, cx+5, cy-5};
-        dpoly(poly, 3, col, C_NONE);
+        int px[] = {cx, cx-5, cx+5};
+        int py[] = {cy+5, cy-5, cy-5};
+        dpoly(px, py, 3, col, C_NONE);
     }
 }
 
@@ -720,8 +741,8 @@ PickResult ListPicker::run() {
         dupdate();
         cleareventflips();
 
-        keyev_t ev = pollevent();
-        std::vector<keyev_t> events;
+        key_event_t ev = pollevent();
+        std::vector<key_event_t> events;
         while (ev.type != KEYEV_NONE) {
             events.push_back(ev);
             ev = pollevent();
@@ -734,9 +755,9 @@ PickResult ListPicker::run() {
         bool key_pg_up = keypressed(KEY_LEFT);
         bool key_pg_dn = keypressed(KEY_RIGHT);
 
-        std::vector<keyev_t> lv_events;
-        const keyev_t* footer_touch = nullptr;
-        const keyev_t* header_touch = nullptr;
+        std::vector<key_event_t> lv_events;
+        const key_event_t* footer_touch = nullptr;
+        const key_event_t* header_touch = nullptr;
 
         for (const auto& e : events) {
             if (e.type == KEYEV_TOUCH_DOWN || e.type == KEYEV_TOUCH_UP || e.type == KEYEV_TOUCH_DRAG) {
@@ -881,14 +902,14 @@ bool ConfirmationDialog::run() {
         if (keypressed(KEY_EXIT) || keypressed(KEY_DEL)) return false;
         if (keypressed(KEY_EXE)) return true;
 
-        keyev_t ev = pollevent();
-        std::vector<keyev_t> events;
+        key_event_t ev = pollevent();
+        std::vector<key_event_t> events;
         while (ev.type != KEYEV_NONE) {
             events.push_back(ev);
             ev = pollevent();
         }
 
-        const keyev_t* touch = nullptr;
+        const key_event_t* touch = nullptr;
         for (const auto& e : events) {
             if (e.type == KEYEV_TOUCH_DOWN && !touch_latched) {
                 touch_latched = true;
@@ -978,8 +999,8 @@ InputResult input(const std::string& prompt, const std::string& type, const std:
         if (keypressed(KEY_EXE)) return {true, text};
         if (keypressed(KEY_DEL) && !text.empty()) text.pop_back();
 
-        keyev_t ev = pollevent();
-        std::vector<keyev_t> events;
+        key_event_t ev = pollevent();
+        std::vector<key_event_t> events;
         while (ev.type != KEYEV_NONE) {
             events.push_back(ev);
             ev = pollevent();
