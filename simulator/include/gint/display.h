@@ -24,9 +24,12 @@ typedef uint16_t color_t;
 extern "C" {
 #endif
 
-// ClassPad screen dimensions
+#ifndef SCREEN_W
 #define SCREEN_W 320
+#endif
+#ifndef SCREEN_H
 #define SCREEN_H 528
+#endif
 
 void drect(int x1, int y1, int x2, int y2, color_t color);
 void drect_border(int x1, int y1, int x2, int y2, int fill_color, int width, int border_color);

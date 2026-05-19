@@ -15,6 +15,13 @@ namespace cinput {
 // CONSTANTS & CONFIG
 // =============================================================================
 
+#ifndef SCREEN_W
+#define SCREEN_W 320
+#endif
+#ifndef SCREEN_H
+#define SCREEN_H 528
+#endif
+
 // Layout Dimensions
 const int KBD_H = 260;
 const int TAB_H = 30;

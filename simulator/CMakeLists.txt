@@ -29,6 +29,7 @@ endif()
 if(IS_WEB)
     add_executable(simulator_web ${SOURCES})
     set_target_properties(simulator_web PROPERTIES SUFFIX ".js")
+    target_compile_options(simulator_web PRIVATE "-s USE_SDL=2")
     target_link_options(simulator_web PRIVATE
         "-s USE_SDL=2"
         "-s WASM=1"
