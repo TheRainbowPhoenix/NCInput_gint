@@ -237,25 +237,26 @@ void dpoly(int const *px, int const *py, int n, int color, int border) {
 
 static SDL_Rect clip_rect = {0, 0, SCREEN_W, SCREEN_H};
 
-void dsize(const char *str, void *font, int *w, int *h) {
-    if (!str) { *w = 0; *h = 0; return; }
-    *w = strlen(str) * 8;
-    *h = 8;
+void dsize(const char *str, void const *font, int *w, int *h) {
+    if (!str) { if(w) *w = 0; if(h) *h = 0; return; }
+    if(w) *w = strlen(str) * 8;
+    if(h) *h = 8;
 }
 
-void drsize(const char *str, void *font, int width, int *count, int *px) {
-    if (!str) { *count = 0; *px = 0; return; }
+char const *drsize(const char *str, void const *font, int width, int *px) {
+    if (!str) { if(px) *px = 0; return nullptr; }
     int max_chars = width / 8;
     int len = strlen(str);
-    *count = std::min(max_chars, len);
-    *px = (*count) * 8;
+    int count = std::min(max_chars, len);
+    if(px) *px = count * 8;
+    return str + count;
 }
 
-void dwindow_set(int x1, int y1, int x2, int y2) {
-    clip_rect.x = x1;
-    clip_rect.y = y1;
-    clip_rect.w = x2 - x1;
-    clip_rect.h = y2 - y1;
+void dwindow_set(dwindow window) {
+    clip_rect.x = window.x1;
+    clip_rect.y = window.y1;
+    clip_rect.w = window.x2 - window.x1;
+    clip_rect.h = window.y2 - window.y1;
 }
 
 void dupdate(void) {

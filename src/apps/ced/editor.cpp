@@ -293,8 +293,10 @@ int Editor::get_cx_from_px(const std::string& line, int target_x, int target_vis
         if (cur_vis_row == target_visual_row) {
             if (target_x < cur_x + t_w) {
                 int rel_x = std::max(0, target_x - cur_x);
-                int offset, fit_w;
-                drsize(text.c_str(), NULL, rel_x, &offset, &fit_w);
+                int fit_w;
+                const char* next_p = drsize(text.c_str(), NULL, rel_x, &fit_w);
+                int offset = next_p - text.c_str();
+
                 if (offset < (int)text.length()) {
                     int cw, ch; dsize(text.substr(offset, 1).c_str(), NULL, &cw, &ch);
                     if (rel_x > fit_w + (cw / 2)) offset++;
@@ -335,7 +337,7 @@ void Editor::draw_indentation_guides(const std::string& line, int x, int y) {
 }
 
 void Editor::draw_text_content(int view_h) {
-    dwindow_set(0, HEADER_H, SCREEN_W, SCREEN_H);
+    dwindow_set(DWINDOW_SET(0, HEADER_H, SCREEN_W, SCREEN_H));
     int current_screen_y = HEADER_H + 6;
     int max_y = HEADER_H + view_h;
     color_t col_txt = cinput::get_theme(current_theme_name).txt;
@@ -365,7 +367,7 @@ void Editor::draw_text_content(int view_h) {
         }
         current_screen_y += TEXT_LINE_H;
     }
-    dwindow_set(0, 0, SCREEN_W, SCREEN_H);
+    dwindow_set(DWINDOW_SET(0, 0, SCREEN_W, SCREEN_H));
 }
 
 void Editor::draw() {

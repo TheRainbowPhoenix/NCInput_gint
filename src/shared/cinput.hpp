@@ -134,7 +134,8 @@ struct KeyRect {
 
 class Keyboard {
 public:
-    Keyboard(int default_tab = 0, bool enable_tabs = true, NumpadOpts numpad_opts = {true, true}, const std::string& theme = "light", const std::string& layout = "qwerty");
+    Keyboard(const std::string& theme = "light", const std::string& layout = "qwerty");
+    Keyboard(int default_tab, bool enable_tabs = true, NumpadOpts numpad_opts = {true, true}, const std::string& theme = "light", const std::string& layout = "qwerty");
 
     void draw_key(int x, int y, int w, int h, const std::string& label, bool is_special = false, bool is_pressed = false, bool is_accent = false);
     void draw_tabs();
@@ -149,13 +150,13 @@ public:
     void draw();
     std::string update(const key_event_t& ev);
 
-    int m_y;
-    bool m_visible = true;
+    int y;
+    bool visible = true;
     int m_current_tab;
     bool m_enable_tabs;
     bool m_shift = false;
     std::vector<std::string> m_tabs;
-    std::string m_last_key;
+    std::string last_key;
     NumpadOpts m_numpad_opts;
     const Theme& m_theme;
     std::vector<std::vector<std::string>> m_layout_alpha;

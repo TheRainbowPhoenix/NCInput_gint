@@ -387,10 +387,13 @@ static const std::vector<std::vector<std::string>> LAYOUT_SYM = {
     {"{","}", "[", "]", "^", "~", "`", "|", "<", ">"}
 };
 
+Keyboard::Keyboard(const std::string& theme, const std::string& layout)
+    : Keyboard(0, true, {true, true}, theme, layout) {}
+
 Keyboard::Keyboard(int default_tab, bool enable_tabs, NumpadOpts numpad_opts, const std::string& theme, const std::string& layout)
     : m_current_tab(default_tab), m_enable_tabs(enable_tabs), m_numpad_opts(numpad_opts), m_theme(get_theme(theme))
 {
-    m_y = SCREEN_H - KBD_H;
+    y = SCREEN_H - KBD_H;
     m_tabs = {"ABC", "Sym", "Math"};
     auto it = LAYOUTS.find(layout);
     if (it != LAYOUTS.end()) {
@@ -405,7 +408,7 @@ Keyboard::Keyboard(int default_tab, bool enable_tabs, NumpadOpts numpad_opts, co
     }
 }
 
-void Keyboard::draw_key(int x, int y, int w, int h, const std::string& label, bool is_special, bool is_pressed, bool is_accent) {
+void Keyboard::draw_key(int kx, int ky, int w, int h, const std::string& label, bool is_special, bool is_pressed, bool is_accent) {
     color_t bg;
     if (is_pressed) bg = m_theme.hl;
     else if (is_accent) bg = m_theme.accent;
@@ -415,9 +418,9 @@ void Keyboard::draw_key(int x, int y, int w, int h, const std::string& label, bo
     color_t txt_col = is_accent ? m_theme.txt_acc : m_theme.txt;
     color_t border_col = m_theme.key_spec;
 
-    drect(x + 1, y + 1, x + w - 1, y + h - 1, bg);
-    cinput_drect_border_helper(x, y, x + w, y + h, (int)C_NONE, 1, (int)border_col);
-    dtext_opt(x + w/2, y + h/2, txt_col, (int)C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, label.c_str(), -1);
+    drect(kx + 1, ky + 1, kx + w - 1, ky + h - 1, bg);
+    cinput_drect_border_helper(kx, ky, kx + w, ky + h, (int)C_NONE, 1, (int)border_col);
+    dtext_opt(kx + w/2, ky + h/2, txt_col, (int)C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, label.c_str(), -1);
 }
 
 void Keyboard::draw_tabs() {
@@ -427,18 +430,18 @@ void Keyboard::draw_tabs() {
         int tx = i * tab_w;
         bool is_active = (i == m_current_tab);
         color_t bg = is_active ? m_theme.kbd_bg : m_theme.key_spec;
-        drect(tx, m_y, tx + tab_w, m_y + TAB_H, bg);
-        cinput_drect_border_helper(tx, m_y, tx + tab_w, m_y + TAB_H, (int)C_NONE, 1, (int)border_col);
+        drect(tx, y, tx + tab_w, y + TAB_H, bg);
+        cinput_drect_border_helper(tx, y, tx + tab_w, y + TAB_H, (int)C_NONE, 1, (int)border_col);
         if (is_active) {
-            drect(tx + 1, m_y + TAB_H - 1, tx + tab_w - 1, m_y + TAB_H + 1, m_theme.kbd_bg);
+            drect(tx + 1, y + TAB_H - 1, tx + tab_w - 1, y + TAB_H + 1, m_theme.kbd_bg);
         }
-        dtext_opt(tx + tab_w/2, m_y + TAB_H/2, m_theme.txt, (int)C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, m_tabs[i].c_str(), -1);
+        dtext_opt(tx + tab_w/2, y + TAB_H/2, m_theme.txt, (int)C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, m_tabs[i].c_str(), -1);
     }
 }
 
 void Keyboard::draw_grid() {
     const auto& layout = (m_current_tab == 1) ? LAYOUT_SYM : m_layout_alpha;
-    int grid_y = m_y + TAB_H;
+    int grid_y = y + TAB_H;
     int row_h = 45;
     for (int r = 0; r < (int)layout.size(); ++r) {
         int count = (int)layout[r].size();
@@ -450,7 +453,7 @@ void Keyboard::draw_grid() {
             if (m_current_tab == 0 && m_shift) {
                 for (auto &ch : label) ch = (char)std::toupper(ch);
             }
-            bool is_pressed = (m_last_key == label);
+            bool is_pressed = (last_key == label);
             draw_key(kx, ky, kw, row_h, label, false, is_pressed);
         }
     }
@@ -458,37 +461,37 @@ void Keyboard::draw_grid() {
     int bot_y = grid_y + 4 * row_h;
     int bot_h = row_h;
     draw_key(0, bot_y, 50, bot_h, "CAPS", true, m_shift, false);
-    draw_key(50, bot_y, 50, bot_h, "<-", true, m_last_key == "BACKSPACE", false);
-    draw_key(100, bot_y, 160, bot_h, "Space", false, m_last_key == " ", false);
-    draw_key(260, bot_y, 60, bot_h, "EXE", false, m_last_key == "ENTER", true);
+    draw_key(50, bot_y, 50, bot_h, "<-", true, last_key == "BACKSPACE", false);
+    draw_key(100, bot_y, 160, bot_h, "Space", false, last_key == " ", false);
+    draw_key(260, bot_y, 60, bot_h, "EXE", false, last_key == "ENTER", true);
 }
 
-std::string Keyboard::update_grid(int x, int y, int type) {
-    int grid_y = m_y + TAB_H;
+std::string Keyboard::update_grid(int kx, int ky, int type) {
+    int grid_y = y + TAB_H;
     int row_h = 45;
-    int row_idx = (y - grid_y) / row_h;
+    int row_idx = (ky - grid_y) / row_h;
     if (row_idx >= 0 && row_idx < 4) {
         const auto& layout = (m_current_tab == 1) ? LAYOUT_SYM : m_layout_alpha;
         if (row_idx >= (int)layout.size()) return "";
         const auto& row_chars = layout[row_idx];
         int kw = SCREEN_W / (int)row_chars.size();
-        int col_idx = x / kw;
+        int col_idx = kx / kw;
         if (col_idx < 0) col_idx = 0;
         if (col_idx >= (int)row_chars.size()) col_idx = (int)row_chars.size() - 1;
         std::string char_val = row_chars[col_idx];
         if (m_current_tab == 0 && m_shift) {
             for (auto &ch : char_val) ch = (char)std::toupper(ch);
         }
-        if (type == KEYEV_TOUCH_DOWN) m_last_key = char_val;
+        if (type == KEYEV_TOUCH_DOWN) last_key = char_val;
         return char_val;
     } else if (row_idx == 4) {
         std::string cmd = "";
-        if (x < 50) {
+        if (kx < 50) {
             if (type == KEYEV_TOUCH_DOWN) m_shift = !m_shift;
-        } else if (x < 100) cmd = "BACKSPACE";
-        else if (x < 260) cmd = " ";
+        } else if (kx < 100) cmd = "BACKSPACE";
+        else if (kx < 260) cmd = " ";
         else cmd = "ENTER";
-        if (type == KEYEV_TOUCH_DOWN) m_last_key = cmd;
+        if (type == KEYEV_TOUCH_DOWN) last_key = cmd;
         return cmd;
     }
     return "";
@@ -496,7 +499,7 @@ std::string Keyboard::update_grid(int x, int y, int type) {
 
 std::vector<KeyRect> Keyboard::get_math_rects() {
     std::vector<KeyRect> keys;
-    int start_y = m_y + TAB_H;
+    int start_y = y + TAB_H;
     int total_h = KBD_H - TAB_H;
     int row_h = total_h / 4;
     int side_w = 50;
@@ -537,7 +540,7 @@ std::vector<KeyRect> Keyboard::get_math_rects() {
 
 std::vector<KeyRect> Keyboard::get_numpad_rects() {
     std::vector<KeyRect> keys;
-    int start_y = m_y;
+    int start_y = y;
     int total_h = KBD_H;
     int row_h = total_h / 4;
     int action_w = 80;
@@ -574,15 +577,15 @@ std::vector<KeyRect> Keyboard::get_numpad_rects() {
 
 void Keyboard::draw_keys_from_rects(const std::vector<KeyRect>& rects) {
     for (const auto& r : rects) {
-        bool is_pressed = (m_last_key == r.val);
+        bool is_pressed = (last_key == r.val);
         draw_key(r.x, r.y, r.w, r.h, r.label, r.is_spec, is_pressed, r.is_acc);
     }
 }
 
-std::string Keyboard::update_keys_from_rects(const std::vector<KeyRect>& rects, int x, int y, int type) {
+std::string Keyboard::update_keys_from_rects(const std::vector<KeyRect>& rects, int kx, int ky, int type) {
     for (const auto& r : rects) {
-        if (x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h) {
-            if (type == KEYEV_TOUCH_DOWN) m_last_key = r.val;
+        if (kx >= r.x && kx < r.x + r.w && ky >= r.y && ky < r.y + r.h) {
+            if (type == KEYEV_TOUCH_DOWN) last_key = r.val;
             return r.val;
         }
     }
@@ -590,9 +593,9 @@ std::string Keyboard::update_keys_from_rects(const std::vector<KeyRect>& rects, 
 }
 
 void Keyboard::draw() {
-    if (!m_visible) return;
-    drect(0, m_y, SCREEN_W, SCREEN_H, m_theme.kbd_bg);
-    dhline(m_y, m_theme.key_spec);
+    if (!visible) return;
+    drect(0, y, SCREEN_W, SCREEN_H, m_theme.kbd_bg);
+    dhline(y, m_theme.key_spec);
     if (m_enable_tabs) {
         draw_tabs();
         if (m_current_tab == 2) draw_keys_from_rects(get_math_rects());
@@ -603,24 +606,24 @@ void Keyboard::draw() {
 }
 
 std::string Keyboard::update(const key_event_t& ev) {
-    if (ev.type == KEYEV_TOUCH_DOWN) m_last_key = "";
-    if (!m_visible) return "";
+    if (ev.type == KEYEV_TOUCH_DOWN) last_key = "";
+    if (!visible) return "";
 
-    int x = ev.x, y = ev.y;
-    if (y < m_y) return "";
+    int kx = ev.x, ky = ev.y;
+    if (ky < y) return "";
 
-    if (m_enable_tabs && y < m_y + TAB_H) {
+    if (m_enable_tabs && ky < y + TAB_H) {
         if (ev.type == KEYEV_TOUCH_DOWN) {
             int tab_w = SCREEN_W / 3;
-            m_current_tab = x / tab_w;
+            m_current_tab = kx / tab_w;
             if (m_current_tab > 2) m_current_tab = 2;
         }
         return "";
     }
 
-    if (!m_enable_tabs) return update_keys_from_rects(get_numpad_rects(), x, y, ev.type);
-    if (m_current_tab == 2) return update_keys_from_rects(get_math_rects(), x, y, ev.type);
-    return update_grid(x, y, ev.type);
+    if (!m_enable_tabs) return update_keys_from_rects(get_numpad_rects(), kx, ky, ev.type);
+    if (m_current_tab == 2) return update_keys_from_rects(get_math_rects(), kx, ky, ev.type);
+    return update_grid(kx, ky, ev.type);
 }
 
 // =============================================================================
@@ -1000,7 +1003,7 @@ InputResult input(const std::string& prompt, const std::string& type, const std:
         for (const auto& e : events) {
             if (e.type == KEYEV_TOUCH_UP) {
                 touch_latched = false;
-                kbd.m_last_key = "";
+                kbd.last_key = "";
             }
 
             bool should_close = (e.type == touch_mode);
