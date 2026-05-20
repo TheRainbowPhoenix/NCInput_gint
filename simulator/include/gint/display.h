@@ -10,6 +10,8 @@ typedef uint16_t color_t;
 #define C_NONE  0x0001
 #define C_DARK  0x4210
 #define C_LIGHT 0xCE79
+#define C_BLUE  C_RGB(0, 0, 31)
+#define C_RED   C_RGB(31, 0, 0)
 
 #define C_RGB(r, g, b) (color_t)((((r) & 0x1f) << 11) | (((g) & 0x3f) << 5) | ((b) & 0x1f))
 
@@ -41,6 +43,10 @@ void dtext_opt(int x, int y, color_t fg, int bg, int halign, int valign, const c
 void dpoly(int const *x, int const *y, int n, int color, int border);
 void dclear(color_t color);
 void dupdate(void);
+
+void dsize(const char *str, void *font, int *w, int *h);
+void drsize(const char *str, void *font, int width, int *count, int *px);
+void dwindow_set(int x1, int y1, int x2, int y2);
 
 #ifdef __cplusplus
 }

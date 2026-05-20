@@ -235,6 +235,29 @@ void dpoly(int const *px, int const *py, int n, int color, int border) {
     }
 }
 
+static SDL_Rect clip_rect = {0, 0, SCREEN_W, SCREEN_H};
+
+void dsize(const char *str, void *font, int *w, int *h) {
+    if (!str) { *w = 0; *h = 0; return; }
+    *w = strlen(str) * 8;
+    *h = 8;
+}
+
+void drsize(const char *str, void *font, int width, int *count, int *px) {
+    if (!str) { *count = 0; *px = 0; return; }
+    int max_chars = width / 8;
+    int len = strlen(str);
+    *count = std::min(max_chars, len);
+    *px = (*count) * 8;
+}
+
+void dwindow_set(int x1, int y1, int x2, int y2) {
+    clip_rect.x = x1;
+    clip_rect.y = y1;
+    clip_rect.w = x2 - x1;
+    clip_rect.h = y2 - y1;
+}
+
 void dupdate(void) {
     SDL_UpdateTexture(screen_texture, nullptr, vram, SCREEN_W * sizeof(uint16_t));
     SDL_RenderClear(renderer);

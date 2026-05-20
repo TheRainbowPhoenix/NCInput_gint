@@ -15,17 +15,29 @@ endif()
 set(SHARED_SOURCES
     ../src/shared/cinput.cpp
     ../src/shared/cdateinput.cpp
+    ../src/shared/LazyFile.cpp
     src/simulator.cpp
 )
 
-include_directories(include ../src/shared)
+include_directories(include ../src/shared ../src/apps/ced)
 
-set(APPS "cinput_demo" "physchem" "app_template")
+set(APPS "cinput_demo" "physchem" "app_template" "ced")
 
 foreach(APP ${APPS})
+    if("${APP}" STREQUAL "ced")
+        set(APP_SOURCES
+            ../src/apps/ced/main.cpp
+            ../src/apps/ced/editor.cpp
+            ../src/apps/ced/tokenizer.cpp
+            ${SHARED_SOURCES}
+        )
+    else()
+        set(APP_SOURCES ../src/apps/${APP}/main.cpp ${SHARED_SOURCES})
+    endif()
+
     if(IS_NATIVE)
         find_package(SDL2 REQUIRED)
-        add_executable(${APP}_sim ../src/apps/${APP}/main.cpp ${SHARED_SOURCES})
+        add_executable(${APP}_sim ${APP_SOURCES})
         target_link_libraries(${APP}_sim SDL2::SDL2)
         target_compile_definitions(${APP}_sim PRIVATE SIMULATOR_NATIVE)
         if(IS_WINDOWS)
@@ -38,7 +50,7 @@ foreach(APP ${APPS})
     endif()
 
     if(IS_WEB)
-        add_executable(${APP}_web ../src/apps/${APP}/main.cpp ${SHARED_SOURCES})
+        add_executable(${APP}_web ${APP_SOURCES})
         set_target_properties(${APP}_web PROPERTIES SUFFIX ".html")
         target_compile_options(${APP}_web PRIVATE -sUSE_SDL=2)
         target_link_options(${APP}_web PRIVATE

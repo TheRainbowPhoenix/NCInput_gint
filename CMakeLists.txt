@@ -10,12 +10,22 @@ find_package(Gint 2.9 REQUIRED)
 set(SHARED_SOURCES
     src/shared/cinput.cpp
     src/shared/cdateinput.cpp
+    src/shared/LazyFile.cpp
 )
 
-set(APPS "cinput_demo" "physchem" "app_template")
+set(APPS "cinput_demo" "physchem" "app_template" "ced")
 
 foreach(APP ${APPS})
-    set(APP_SOURCES src/apps/${APP}/main.cpp ${SHARED_SOURCES})
+    if("${APP}" STREQUAL "ced")
+        set(APP_SOURCES
+            src/apps/ced/main.cpp
+            src/apps/ced/editor.cpp
+            src/apps/ced/tokenizer.cpp
+            ${SHARED_SOURCES}
+        )
+    else()
+        set(APP_SOURCES src/apps/${APP}/main.cpp ${SHARED_SOURCES})
+    endif()
     add_executable(${APP} ${APP_SOURCES})
     target_compile_options(${APP} PRIVATE -Wall -Wextra -Os -g -flto=auto -fno-exceptions)
     target_link_libraries(${APP} Gint::Gint stdc++)
