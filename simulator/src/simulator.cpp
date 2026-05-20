@@ -130,6 +130,11 @@ static void set_pixel(int x, int y, color_t c) {
 }
 
 // --- Initialization ---
+dwindow_t dwindow(int x1, int y1, int x2, int y2) {
+    dwindow_t d = {x1, y1, x2, y2};
+    return d;
+}
+
 extern "C" void simulator_init() {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0) return;
     window = SDL_CreateWindow("cinput Simulator", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_W, SCREEN_H, SDL_WINDOW_SHOWN);
@@ -253,10 +258,10 @@ char const *drsize(const char *str, void const *font, int width, int *px) {
 }
 
 void dwindow_set(dwindow_t window) {
-    clip_rect.x = window.x1;
-    clip_rect.y = window.y1;
-    clip_rect.w = window.x2 - window.x1;
-    clip_rect.h = window.y2 - window.y1;
+    clip_rect.x = std::min(window.x1, window.x2);
+    clip_rect.y = std::min(window.y1, window.y2);
+    clip_rect.w = std::abs(window.x2 - window.x1);
+    clip_rect.h = std::abs(window.y2 - window.y1);
 }
 
 void dupdate(void) {
