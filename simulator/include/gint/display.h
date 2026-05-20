@@ -44,19 +44,9 @@ void dpoly(int const *x, int const *y, int n, int color, int border);
 void dclear(color_t color);
 void dupdate(void);
 
-typedef struct {
-    int x1, y1, x2, y2;
-} dwindow;
-
-#ifdef __cplusplus
-#define DWINDOW_SET(x1, y1, x2, y2) dwindow{x1, y1, x2, y2}
-#else
-#define DWINDOW_SET(x1, y1, x2, y2) (dwindow){x1, y1, x2, y2}
-#endif
-
 void dsize(const char *str, void const *font, int *w, int *h);
 char const *drsize(const char *str, void const *font, int width, int *px);
-void dwindow_set(dwindow window);
+void dwindow_set(int x1, int y1, int x2, int y2);
 
 #ifdef __cplusplus
 }
