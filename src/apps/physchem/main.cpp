@@ -293,42 +293,62 @@ int main() {
          {"a", [](auto& x){ return 2*(x["d"] - x["u"]*x["t"])/std::pow(x["t"],2); }}},
         {{"d","m"}, {"u","m/s"}, {"t","s"}, {"a","m/s^2"}});
 
+    std::vector<std::string> categories = {"Mechanics", "Thermodynamics", "Electricity"};
     std::map<std::string, std::vector<Equation*>> menu_tree = {
-        {"Mechanics", {&v_eq, &d_eq}}
+        {"Mechanics", {&v_eq, &d_eq}},
+        {"Thermodynamics", {}},
+        {"Electricity", {}}
     };
 
-    std::vector<std::string> categories;
-    for (auto const& [k, v] : menu_tree) categories.push_back(k);
+    enum class View { CATEGORIES, EQUATIONS };
+    View current_view = View::CATEGORIES;
     std::string current_cat = categories[0];
 
     while (true) {
         std::vector<ListItem> items;
-        for (auto eq : menu_tree[current_cat]) {
-            items.push_back({eq->name, "item", LIST_ITEM_H, false, true});
+        std::string title;
+
+        if (current_view == View::CATEGORIES) {
+            for (const auto& cat : categories) items.push_back({cat, "item", LIST_ITEM_H, false, true});
+            title = "PhysChem";
+        } else {
+            for (auto eq : menu_tree[current_cat]) items.push_back({eq->name, "item", LIST_ITEM_H, false, true});
+            title = current_cat;
         }
 
         ListView lv({0, HEADER_H, SCREEN_W, SCREEN_H - HEADER_H}, items, LIST_ITEM_H, THEME_NAME, SECTION_H);
-        bool in_main = true;
-        while (in_main) {
+        bool in_view = true;
+        while (in_view) {
             lv.draw();
             const Theme& t = get_theme(THEME_NAME);
             drect(0, 0, SCREEN_W, HEADER_H, t.accent);
-            for (int i=0; i<3; ++i) drect(15, HEADER_H/2-8+i*5, 15+18, HEADER_H/2-8+i*5+1, t.txt_acc);
-            dtext_opt(SCREEN_W/2, HEADER_H/2, t.txt_acc, (int)C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, current_cat.c_str(), -1);
+
+            if (current_view == View::CATEGORIES) {
+                for (int i=0; i<3; ++i) drect(15, HEADER_H/2-8+i*5, 15+18, HEADER_H/2-8+i*5+1, t.txt_acc);
+            } else {
+                // Draw back arrow
+                drect(10 + 2, 10 + 9, 10 + 18, 10 + 10, t.txt_acc);
+                dline(10 + 2, 10 + 9, 10 + 9, 10 + 2, t.txt_acc);
+                dline(10 + 2, 10 + 9, 10 + 9, 10 + 16, t.txt_acc);
+            }
+
+            dtext_opt(SCREEN_W/2, HEADER_H/2, t.txt_acc, (int)C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, title.c_str(), -1);
             dupdate(); cleareventflips();
 
-            if (keypressed(KEY_MENU)) {
-                auto res = pick(categories, "Category", THEME_NAME, false, KEYEV_TOUCH_UP);
-                if (res.success && !res.values.empty()) { current_cat = res.values[0]; in_main = false; }
+            if (keypressed(KEY_EXIT)) {
+                if (current_view == View::EQUATIONS) { current_view = View::CATEGORIES; in_view = false; }
+                else return 0;
             }
-            if (keypressed(KEY_EXIT)) return 0;
 
             key_event_t ev = pollevent();
             std::vector<key_event_t> events;
             while(ev.type != KEYEV_NONE) {
                 if (ev.type == KEYEV_TOUCH_UP && ev.y < HEADER_H && ev.x < 60) {
-                    auto res = pick(categories, "Category", THEME_NAME, false, KEYEV_TOUCH_UP);
-                    if (res.success && !res.values.empty()) { current_cat = res.values[0]; in_main = false; }
+                    if (current_view == View::EQUATIONS) { current_view = View::CATEGORIES; in_view = false; }
+                    else {
+                        auto res = pick(categories, "Jump to...", THEME_NAME, false, KEYEV_TOUCH_UP);
+                        if (res.success && !res.values.empty()) { current_cat = res.values[0]; current_view = View::EQUATIONS; in_view = false; }
+                    }
                 }
                 events.push_back(ev); ev = pollevent();
             }
@@ -336,8 +356,14 @@ int main() {
             ListView::Action action;
             if (lv.update(events, action)) {
                 if (action.type == "click") {
-                    SolverActivity solver(menu_tree[current_cat][action.index]);
-                    solver.run();
+                    if (current_view == View::CATEGORIES) {
+                        current_cat = categories[action.index];
+                        current_view = View::EQUATIONS;
+                        in_view = false;
+                    } else {
+                        SolverActivity solver(menu_tree[current_cat][action.index]);
+                        solver.run();
+                    }
                 }
             }
             sleep_ms(10);

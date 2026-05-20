@@ -79,6 +79,11 @@ jobs:
         cp simulator/build_web/app_template_web.html simulator/dist/app_template/index.html
         cp simulator/build_web/app_template_web.js simulator/dist/app_template/
         cp simulator/build_web/app_template_web.wasm simulator/dist/app_template/
+
+        mkdir -p simulator/dist/ced
+        cp simulator/build_web/ced_web.html simulator/dist/ced/index.html
+        cp simulator/build_web/ced_web.js simulator/dist/ced/
+        cp simulator/build_web/ced_web.wasm simulator/dist/ced/
     - name: Upload Web Artifacts
       uses: actions/upload-artifact@v4
       with:

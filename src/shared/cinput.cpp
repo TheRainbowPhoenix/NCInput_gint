@@ -19,7 +19,7 @@ std::map<std::string, Theme> THEMES = {
         C_WHITE,
         C_WHITE,
         C_WHITE,
-        C_RGB(28, 29, 28), // key_spec
+        C_RGB(26, 52, 26), // key_spec (Gray)
         C_DARK,            // key_out
         C_RGB(4, 4, 4),    // txt
         C_RGB(8, 8, 8),    // txt_dim

@@ -11,6 +11,17 @@ extern "C" void simulator_init();
 int main() {
 #if defined(SIMULATOR_NATIVE) || defined(SIMULATOR_WEB)
     simulator_init();
+    // Create mock file for simulator
+    FILE* f = fopen("example.py", "r");
+    if (!f) {
+        f = fopen("example.py", "w");
+        if (f) {
+            fputs("# CED Mock File\ndef hello():\n    print(\"Hello C++ world!\")\n", f);
+            fclose(f);
+        }
+    } else {
+        fclose(f);
+    }
 #endif
 
     ced::Editor editor;
