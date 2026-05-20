@@ -45,18 +45,26 @@ void dpoly(int const *x, int const *y, int n, int color, int border);
 void dclear(color_t color);
 void dupdate(void);
 
-typedef struct dwindow {
+typedef struct {
     int x1, y1, x2, y2;
-} dwindow;
-
-typedef dwindow dwindow_t;
+} dwindow_t;
 
 void dsize(const char *str, void const *font, int *w, int *h);
 char const *drsize(const char *str, void const *font, int width, int *px);
-void dwindow_set(dwindow window);
+void dwindow_set(dwindow_t window);
 
 #ifdef __cplusplus
 }
+#endif
+
+// On ClassPad gint, dwindow is both a type and a constructor-like macro.
+// In C++, the safest way to initialize a struct without naming conflicts is:
+// dwindow_t win = {x1, y1, x2, y2};
+// We provide a constructor-like macro for the simulator that works in C and C++.
+#ifdef __cplusplus
+#define dwindow(x1, y1, x2, y2) (dwindow_t{ (x1), (y1), (x2), (y2) })
+#else
+#define dwindow(x1, y1, x2, y2) ((dwindow_t){(x1), (y1), (x2), (y2)})
 #endif
 
 #endif
