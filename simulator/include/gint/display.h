@@ -44,23 +44,34 @@ void dpoly(int const *x, int const *y, int n, int color, int border);
 void dclear(color_t color);
 void dupdate(void);
 
+#ifdef __cplusplus
+} // extern "C"
+#endif
+
+#ifdef __cplusplus
+struct dwindow {
+    int x1, y1, x2, y2;
+    dwindow() : x1(0), y1(0), x2(0), y2(0) {}
+    dwindow(int _x1, int _y1, int _x2, int _y2) : x1(_x1), y1(_y1), x2(_x2), y2(_y2) {}
+};
+typedef struct dwindow dwindow_t;
+#else
 typedef struct {
     int x1, y1, x2, y2;
 } dwindow_t;
+static inline dwindow_t dwindow(int x1, int y1, int x2, int y2) {
+    dwindow_t d = {x1, y1, x2, y2};
+    return d;
+}
+#endif
 
-// On real gint, dwindow is both a type and a constructor function
-#define dwindow dwindow_t
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void dsize(const char *str, void const *font, int *w, int *h);
 char const *drsize(const char *str, void const *font, int width, int *px);
 void dwindow_set(dwindow_t window);
-
-static inline dwindow_t dwindow(int x1, int y1, int x2, int y2) {
-    dwindow_t win = {x1, y1, x2, y2};
-    return win;
-}
-
-#define DWINDOW_SET dwindow
 
 #ifdef __cplusplus
 }
