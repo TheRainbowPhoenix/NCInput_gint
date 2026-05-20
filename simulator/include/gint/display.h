@@ -48,7 +48,11 @@ typedef struct {
     int x1, y1, x2, y2;
 } dwindow;
 
+#ifdef __cplusplus
+#define DWINDOW_SET(x1, y1, x2, y2) dwindow{x1, y1, x2, y2}
+#else
 #define DWINDOW_SET(x1, y1, x2, y2) (dwindow){x1, y1, x2, y2}
+#endif
 
 void dsize(const char *str, void const *font, int *w, int *h);
 char const *drsize(const char *str, void const *font, int width, int *px);
