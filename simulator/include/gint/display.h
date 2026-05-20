@@ -56,12 +56,9 @@ void dwindow_set(dwindow_t window);
 #ifdef __cplusplus
 }
 
-// In C++, provide a dual-definition that behaves like the hardware API
-struct dwindow : public dwindow_t {
-    dwindow(int _x1, int _y1, int _x2, int _y2) {
-        x1 = _x1; y1 = _y1; x2 = _x2; y2 = _y2;
-    }
-};
+// Use a macro in C++ as well to avoid conflicts while still allowing dwindow(...) syntax
+// This will only be used if building with simulator headers.
+#define dwindow(x1, y1, x2, y2) (dwindow_t{ (x1), (y1), (x2), (y2) })
 
 #else
 // In C, use a macro (compound literal)
