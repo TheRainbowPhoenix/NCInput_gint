@@ -46,16 +46,21 @@ void dupdate(void);
 
 typedef struct {
     int x1, y1, x2, y2;
-} dwindow;
+} dwindow_t;
+
+// On real gint, dwindow is both a type and a constructor function
+#define dwindow dwindow_t
 
 void dsize(const char *str, void const *font, int *w, int *h);
 char const *drsize(const char *str, void const *font, int width, int *px);
-void dwindow_set(dwindow window);
+void dwindow_set(dwindow_t window);
 
-static inline dwindow DWINDOW_SET(int x1, int y1, int x2, int y2) {
-    dwindow win = {x1, y1, x2, y2};
+static inline dwindow_t dwindow(int x1, int y1, int x2, int y2) {
+    dwindow_t win = {x1, y1, x2, y2};
     return win;
 }
+
+#define DWINDOW_SET dwindow
 
 #ifdef __cplusplus
 }
