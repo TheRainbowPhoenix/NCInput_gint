@@ -252,11 +252,11 @@ char const *drsize(const char *str, void const *font, int width, int *px) {
     return str + count;
 }
 
-void dwindow_set(int x1, int y1, int x2, int y2) {
-    clip_rect.x = x1;
-    clip_rect.y = y1;
-    clip_rect.w = x2 - x1;
-    clip_rect.h = y2 - y1;
+void dwindow_set(dwindow window) {
+    clip_rect.x = window.x1;
+    clip_rect.y = window.y1;
+    clip_rect.w = window.x2 - window.x1;
+    clip_rect.h = window.y2 - window.y1;
 }
 
 void dupdate(void) {
