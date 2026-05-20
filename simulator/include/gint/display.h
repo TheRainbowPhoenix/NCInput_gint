@@ -52,6 +52,11 @@ void dsize(const char *str, void const *font, int *w, int *h);
 char const *drsize(const char *str, void const *font, int width, int *px);
 void dwindow_set(dwindow window);
 
+static inline dwindow DWINDOW_SET(int x1, int y1, int x2, int y2) {
+    dwindow win = {x1, y1, x2, y2};
+    return win;
+}
+
 #ifdef __cplusplus
 }
 #endif

@@ -168,7 +168,6 @@ public:
                 else sprintf(val_buf, "%.5g", values[var]);
                 drect(margin, inp_y, SCREEN_W - margin, inp_y + 35, bc);
                 if (!highlight) {
-                    (void)highlight; // Suppress unused warning just in case, though it is used now
                     ::drect_border(margin, inp_y, SCREEN_W - margin, inp_y + 35, (int)C_NONE, 1, (int)border);
                 }
                 color_t col = highlight ? t.txt_acc : t.txt;
@@ -276,11 +275,13 @@ int main() {
     THEMES[THEME_NAME] = {
         C_RGB(29, 62, 29), C_RGB(29, 62, 29), C_RGB(31, 63, 31),
         C_RGB(22, 52, 22), C_RGB(0, 0, 0), C_RGB(2, 12, 3),
-        C_RGB(10, 28, 10), C_RGB(4, 36, 12), C_RGB(31, 63, 31),
+        C_RGB(10, 28, 10), C_RGB(4, 44, 12), C_RGB(31, 63, 31),
         C_RGB(20, 52, 20), C_WHITE
     };
 
-    // Mechanics
+    const double PI = 3.14159265358979323846;
+
+    // --- Mechanics ---
     Equation v_eq("Velocity", {"v", "u", "a", "t"},
         {{"v", [](auto& x){ return x["u"] + x["a"]*x["t"]; }},
          {"u", [](auto& x){ return x["v"] - x["a"]*x["t"]; }},
@@ -332,7 +333,7 @@ int main() {
          {"v", [](auto& x){ return x["p"] / x["m"]; }}},
         {{"p","kgm/s"}, {"m","kg"}, {"v","m/s"}});
 
-    // Electricity
+    // --- Electricity ---
     Equation ohm_eq("Ohm's Law", {"V", "I", "R"},
         {{"V", [](auto& x){ return x["I"] * x["R"]; }},
          {"I", [](auto& x){ return x["V"] / x["R"]; }},
@@ -356,7 +357,7 @@ int main() {
          {"V", [](auto& x){ return x["Q"] / x["C"]; }}},
         {{"Q","C"}, {"C","F"}, {"V","V"}});
 
-    // Waves & Light
+    // --- Waves & Light ---
     Equation wave_eq("Wave Eq (v=fL)", {"v", "f", "L"},
         {{"v", [](auto& x){ return x["f"] * x["L"]; }},
          {"f", [](auto& x){ return x["v"] / x["L"]; }},
@@ -369,11 +370,11 @@ int main() {
         {{"T","s"}, {"f","Hz"}});
 
     Equation snell_eq("Snell's Law", {"n1", "n2", "th1", "th2"},
-        {{"n2", [](auto& x){ return x["n1"] * std::sin(x["th1"] * M_PI / 180.0) / std::sin(x["th2"] * M_PI / 180.0); }},
-         {"n1", [](auto& x){ return x["n2"] * std::sin(x["th2"] * M_PI / 180.0) / std::sin(x["th1"] * M_PI / 180.0); }}},
-        {{"th1","deg"}, {"th2":"deg"}});
+        {{"n2", [PI](auto& x){ return x["n1"] * std::sin(x["th1"] * PI / 180.0) / std::sin(x["th2"] * PI / 180.0); }},
+         {"n1", [PI](auto& x){ return x["n2"] * std::sin(x["th2"] * PI / 180.0) / std::sin(x["th1"] * PI / 180.0); }}},
+        {{"th1","deg"}, {"th2","deg"}});
 
-    // Chemistry
+    // --- Chemistry ---
     Equation mole_eq("Molar Mass", {"n", "mass", "M"},
         {{"n", [](auto& x){ return x["mass"] / x["M"]; }},
          {"mass", [](auto& x){ return x["n"] * x["M"]; }},
@@ -402,7 +403,7 @@ int main() {
     Equation heat_eq("Heat (q=mcDT)", {"q", "m", "c", "DT"},
         {{"q", [](auto& x){ return x["m"] * x["c"] * x["DT"]; }},
          {"m", [](auto& x){ return x["q"] / (x["c"] * x["DT"]); }}},
-        {{"q","J"}, {"m","g"}, {"c","J/gC"}, {"DT":"C"}});
+        {{"q","J"}, {"m","g"}, {"c","J/gC"}, {"DT","C"}});
 
     std::vector<std::string> categories = {"Mechanics", "Electricity", "Waves & Light", "Chemistry"};
     std::map<std::string, std::vector<Equation*>> menu_tree = {

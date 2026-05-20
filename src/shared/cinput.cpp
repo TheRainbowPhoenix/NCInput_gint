@@ -23,7 +23,7 @@ std::map<std::string, Theme> THEMES = {
         C_DARK,            // key_out
         C_RGB(4, 8, 4),    // txt
         C_RGB(8, 16, 8),   // txt_dim
-        C_RGB(1, 22, 26),  // accent
+        C_RGB(1, 44, 26),  // accent
         C_WHITE,           // txt_acc
         C_RGB(28, 56, 28), // hl
         C_WHITE            // check
@@ -33,10 +33,10 @@ std::map<std::string, Theme> THEMES = {
         C_RGB(7, 14, 8),   // kbd_bg
         C_RGB(7, 14, 8),   // key_bg
         C_RGB(11, 22, 12), // key_spec
-        C_RGB(12, 38, 31), // key_out
+        C_RGB(12, 58, 31), // key_out
         C_WHITE,           // txt
         C_RGB(8, 16, 8),   // txt_dim
-        C_RGB(12, 38, 31), // accent
+        C_RGB(12, 58, 31), // accent
         C_WHITE,           // txt_acc
         C_RGB(11, 22, 12), // hl
         C_WHITE            // check
