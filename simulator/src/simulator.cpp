@@ -252,7 +252,7 @@ char const *drsize(const char *str, void const *font, int width, int *px) {
     return str + count;
 }
 
-void dwindow_set(dwindow_t window) {
+void dwindow_set(dwindow window) {
     clip_rect.x = std::min(window.x1, window.x2);
     clip_rect.y = std::min(window.y1, window.y2);
     clip_rect.w = std::abs(window.x2 - window.x1);

@@ -337,7 +337,7 @@ void Editor::draw_indentation_guides(const std::string& line, int x, int y) {
 }
 
 void Editor::draw_text_content(int view_h) {
-    dwindow_t win = { 0, HEADER_H, SCREEN_W, SCREEN_H };
+    dwindow win = { 0, HEADER_H, SCREEN_W, SCREEN_H };
     dwindow_set(win);
     int current_screen_y = HEADER_H + 6;
     int max_y = HEADER_H + view_h;
@@ -368,7 +368,7 @@ void Editor::draw_text_content(int view_h) {
         }
         current_screen_y += TEXT_LINE_H;
     }
-    dwindow_t reset_win = { 0, 0, SCREEN_W, SCREEN_H };
+    dwindow reset_win = { 0, 0, SCREEN_W, SCREEN_H };
     dwindow_set(reset_win);
 }
 

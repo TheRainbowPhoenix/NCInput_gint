@@ -45,31 +45,15 @@ void dpoly(int const *x, int const *y, int n, int color, int border);
 void dclear(color_t color);
 void dupdate(void);
 
-#ifdef __cplusplus
-} // extern "C"
-#endif
-
-#ifdef __cplusplus
-struct dwindow {
+typedef struct dwindow {
     int x1, y1, x2, y2;
-    dwindow() : x1(0), y1(0), x2(0), y2(0) {}
-    dwindow(int _x1, int _y1, int _x2, int _y2) : x1(_x1), y1(_y1), x2(_x2), y2(_y2) {}
-};
-typedef struct dwindow dwindow_t;
-#else
-typedef struct {
-    int x1, y1, x2, y2;
-} dwindow_t;
-#define dwindow(x1, y1, x2, y2) ((dwindow_t){(x1), (y1), (x2), (y2)})
-#endif
+} dwindow;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+typedef dwindow dwindow_t;
 
 void dsize(const char *str, void const *font, int *w, int *h);
 char const *drsize(const char *str, void const *font, int width, int *px);
-void dwindow_set(dwindow_t window);
+void dwindow_set(dwindow window);
 
 #ifdef __cplusplus
 }
