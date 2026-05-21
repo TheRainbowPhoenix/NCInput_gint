@@ -1,0 +1,122 @@
+name: Build Multi-App Simulator
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install SDL2
+      run: sudo apt-get update && sudo apt-get install -y libsdl2-dev
+    - name: Build
+      run: |
+        mkdir -p simulator/build
+        cd simulator/build
+        cmake ..
+        make
+    - name: Upload Linux Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: simulator-linux
+        path: simulator/build/*_sim
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build
+      run: |
+        vcpkg install sdl2:x64-windows
+        mkdir simulator/build
+        cd simulator/build
+        cmake .. -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" -A x64
+        cmake --build . --config Release
+    - name: Upload Windows Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: simulator-windows
+        path: |
+          simulator/build/Release/*.exe
+          simulator/build/Release/*.dll
+
+  build-web:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup emsdk
+      uses: emscripten-core/setup-emsdk@v15
+      with:
+        version: 5.0.1
+        emsdk-version: 5.0.5
+        actions-cache-folder: 'emsdk-cache'
+    - name: Verify
+      run: emcc -v
+    - name: Build Web
+      run: |
+        cd simulator
+        mkdir build_web
+        cd build_web
+        emcmake cmake ..
+        emmake make
+    - name: Prepare Artifacts
+      run: |
+        mkdir -p simulator/dist
+        cp simulator/index.html simulator/dist/index.html
+
+        mkdir -p simulator/dist/cinput_demo
+        cp simulator/build_web/cinput_demo_web.html simulator/dist/cinput_demo/index.html
+        cp simulator/build_web/cinput_demo_web.js simulator/dist/cinput_demo/
+        cp simulator/build_web/cinput_demo_web.wasm simulator/dist/cinput_demo/
+
+        mkdir -p simulator/dist/physchem
+        cp simulator/build_web/physchem_web.html simulator/dist/physchem/index.html
+        cp simulator/build_web/physchem_web.js simulator/dist/physchem/
+        cp simulator/build_web/physchem_web.wasm simulator/dist/physchem/
+
+        mkdir -p simulator/dist/app_template
+        cp simulator/build_web/app_template_web.html simulator/dist/app_template/index.html
+        cp simulator/build_web/app_template_web.js simulator/dist/app_template/
+        cp simulator/build_web/app_template_web.wasm simulator/dist/app_template/
+
+        mkdir -p simulator/dist/ced
+        cp simulator/build_web/ced_web.html simulator/dist/ced/index.html
+        cp simulator/build_web/ced_web.js simulator/dist/ced/
+        cp simulator/build_web/ced_web.wasm simulator/dist/ced/
+    - name: Upload Web Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: simulator-web
+        path: simulator/dist/
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: build-web
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: simulator-web
+          path: .
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
