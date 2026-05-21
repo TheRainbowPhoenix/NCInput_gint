@@ -57,12 +57,7 @@ void dwindow_set(dwindow_t window);
 }
 #endif
 
-// Official gint uses a macro or a very specific definition that allows
-// dwindow(x,y,w,h) to work as an initializer.
-#ifdef __cplusplus
-#define dwindow(...) (dwindow_t{ __VA_ARGS__ })
-#else
-#define dwindow(x1, y1, x2, y2) ((dwindow_t){(x1), (y1), (x2), (y2)})
-#endif
+// Mirror the native gint macro/type dual nature in a portable way.
+#define dwindow dwindow_t
 
 #endif
