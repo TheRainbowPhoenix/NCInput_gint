@@ -57,12 +57,10 @@ void dwindow_set(dwindow_t window);
 }
 #endif
 
-// On ClassPad gint, dwindow is both a type and a constructor-like macro.
-// In C++, the safest way to initialize a struct without naming conflicts is:
-// dwindow_t win = {x1, y1, x2, y2};
-// We provide a constructor-like macro for the simulator that works in C and C++.
+// Official gint uses a macro or a very specific definition that allows
+// dwindow(x,y,w,h) to work as an initializer.
 #ifdef __cplusplus
-#define dwindow(x1, y1, x2, y2) (dwindow_t{ (x1), (y1), (x2), (y2) })
+#define dwindow(...) (dwindow_t{ __VA_ARGS__ })
 #else
 #define dwindow(x1, y1, x2, y2) ((dwindow_t){(x1), (y1), (x2), (y2)})
 #endif
