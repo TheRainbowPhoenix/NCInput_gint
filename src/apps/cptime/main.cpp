@@ -233,8 +233,8 @@ int main() {
         }
         if (state.tm_mode == 3) {
             bool flash = ((now - state.tm_alert_start) / 500) % 2 == 0;
-            dclear(flash ? C_WHITE : CP_BG);
-            dtext_opt(SCREEN_W / 2, SCREEN_H / 2, flash ? C_BLACK : C_WHITE, (int)C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, "TIME'S UP!", -1);
+            dclear(flash ? (color_t)C_WHITE : (color_t)CP_BG);
+            dtext_opt(SCREEN_W / 2, SCREEN_H / 2, flash ? (color_t)C_BLACK : (color_t)C_WHITE, (int)C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, "TIME'S UP!", -1);
             if (tx >= 0 || ty >= 0) { state.tm_mode = 0; for (int i = 0; i < 6; ++i) tm_input[i] = 0; }
         } else {
             if (ty > 0 && ty < 50) { if (tx < SCREEN_W / 2) state.tab = 0; else state.tab = 1; }
