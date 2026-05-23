@@ -241,6 +241,8 @@ int main() {
             dclear(CP_BG); draw_tabs(state.tab);
             if (state.tab == 0) update_stopwatch(tx, ty, now); else update_timer(tx, ty, now);
         }
-        dupdate(); sleep_ms(20);
+        dupdate();
+        cleareventflips();
+        sleep_ms(20);
     }
 }

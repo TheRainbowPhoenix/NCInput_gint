@@ -11,9 +11,10 @@ set(SHARED_SOURCES
     src/shared/cinput.cpp
     src/shared/cdateinput.cpp
     src/shared/LazyFile.cpp
+    src/shared/mcs.cpp
 )
 
-set(APPS "cinput_demo" "physchem" "app_template" "ced" "cptime" "fm")
+set(APPS "cinput_demo" "physchem" "app_template" "ced" "cptime" "fm" "mcsbrowse")
 
 foreach(APP ${APPS})
     if("${APP}" STREQUAL "ced")
@@ -21,6 +22,11 @@ foreach(APP ${APPS})
             src/apps/ced/main.cpp
             src/apps/ced/editor.cpp
             src/apps/ced/tokenizer.cpp
+            ${SHARED_SOURCES}
+        )
+    elseif("${APP}" STREQUAL "mcsbrowse")
+        set(APP_SOURCES
+            src/apps/mcsbrowse/main.cpp
             ${SHARED_SOURCES}
         )
     elseif("${APP}" STREQUAL "fm")

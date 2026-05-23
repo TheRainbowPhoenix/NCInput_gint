@@ -9,8 +9,14 @@ namespace fm {
 
 struct FileItem {
     std::string name;
-    uint32_t size;
+    int size;
     bool is_dir;
+};
+
+class FMListView : public cinput::ListView {
+public:
+    using cinput::ListView::ListView;
+    void draw_item(int x, int y, const cinput::ListItem& item, bool is_selected) override;
 };
 
 class FileManager {
@@ -27,8 +33,7 @@ private:
 
     std::string current_path;
     std::vector<FileItem> items;
-    std::string filter;
-    std::string sort_mode; // "name", "size"
+    std::string sort_mode;
     cinput::Theme theme;
 };
 

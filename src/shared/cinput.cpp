@@ -45,14 +45,14 @@ std::map<std::string, Theme> THEMES = {
         C_LIGHT,
         C_LIGHT,
         C_WHITE,
-        0xCE59,           // key_spec
-        C_BLACK,          // key_out
-        C_BLACK,          // txt
-        C_RGB(8, 16, 8),  // txt_dim
-        C_BLACK,          // accent
-        C_WHITE,          // txt_acc
-        0xCE59,           // hl
-        C_WHITE           // check
+        C_RGB(16, 32, 16), // key_spec
+        C_BLACK,           // key_out
+        C_BLACK,           // txt
+        C_RGB(8, 16, 8),   // txt_dim
+        C_BLACK,           // accent
+        C_WHITE,           // txt_acc
+        C_RGB(20, 40, 20), // hl (Neutral Grey)
+        C_WHITE            // check
     }}
 };
 

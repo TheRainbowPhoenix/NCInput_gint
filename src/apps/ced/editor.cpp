@@ -53,19 +53,37 @@ WrappedLineInfo Editor::get_wrapped_line_info(const std::string& line) {
         int t_w, t_h;
         dsize(text.c_str(), NULL, &t_w, &t_h);
 
+        int token_len = text.length();
+
+        // If the token itself is too wide, we need to wrap char by char
         if (cur_x + t_w > SCREEN_W - 5) {
-            visual_lines++;
-            cur_x = TEXT_MARGIN_X;
-        }
+            for(int i = 0; i < token_len; ++i) {
+                int cw, ch;
+                char c_str[2] = {text[i], 0};
+                dsize(c_str, NULL, &cw, &ch);
 
-        if (cursor_row == -1) {
-            if (cx > char_count && cx <= char_count + (int)text.length()) {
-                cursor_row = visual_lines - 1;
+                if (cur_x + cw > SCREEN_W - 5) {
+                    visual_lines++;
+                    cur_x = TEXT_MARGIN_X;
+                }
+
+                char_count++;
+                if (cursor_row == -1 && cx == char_count) {
+                    cursor_row = visual_lines - 1;
+                }
+                cur_x += cw;
             }
+        } else {
+            if (cursor_row == -1) {
+                if (cx > char_count && cx <= char_count + token_len) {
+                    // Estimate cursor_row more accurately if token wraps
+                    // But here the whole token fits in cur_x + t_w
+                    cursor_row = visual_lines - 1;
+                }
+            }
+            cur_x += t_w;
+            char_count += token_len;
         }
-
-        cur_x += t_w;
-        char_count += text.length();
     }
 
     if (cursor_row == -1 && cx == char_count) cursor_row = visual_lines - 1;
@@ -254,21 +272,31 @@ std::pair<int, int> Editor::get_cursor_rect(const std::string& line, int cx) {
     while (tk.next(text, color)) {
         int t_w, t_h;
         dsize(text.c_str(), NULL, &t_w, &t_h);
+        int token_len = text.length();
 
         if (word_wrap && cur_x + t_w > SCREEN_W - 5) {
-            cur_y += TEXT_LINE_H;
-            cur_x = TEXT_MARGIN_X;
+             for(int i = 0; i < token_len; ++i) {
+                int cw, ch;
+                char c_str[2] = {text[i], 0};
+                dsize(c_str, NULL, &cw, &ch);
+                if (cur_x + cw > SCREEN_W - 5) {
+                    cur_y += TEXT_LINE_H;
+                    cur_x = TEXT_MARGIN_X;
+                }
+                char_count++;
+                if (cx == char_count) return {cur_x + cw, cur_y};
+                cur_x += cw;
+            }
+        } else {
+            if (cx >= char_count && cx <= char_count + token_len) {
+                int local_off = cx - char_count;
+                int sub_w, sub_h;
+                dsize(text.substr(0, local_off).c_str(), NULL, &sub_w, &sub_h);
+                return {cur_x + sub_w, cur_y};
+            }
+            cur_x += t_w;
+            char_count += token_len;
         }
-
-        int token_len = text.length();
-        if (cx >= char_count && cx <= char_count + token_len) {
-            int local_off = cx - char_count;
-            int sub_w, sub_h;
-            dsize(text.substr(0, local_off).c_str(), NULL, &sub_w, &sub_h);
-            return {cur_x + sub_w, cur_y};
-        }
-        cur_x += t_w;
-        char_count += token_len;
     }
     return {cur_x, cur_y};
 }
@@ -337,7 +365,7 @@ void Editor::draw_indentation_guides(const std::string& line, int x, int y) {
 }
 
 void Editor::draw_text_content(int view_h) {
-    dwindow_set({0, HEADER_H, SCREEN_W, SCREEN_H});
+    dwindow_set({0, HEADER_H, SCREEN_W, SCREEN_H + HEADER_H}); // Fixed height issue
     int current_screen_y = HEADER_H + 6;
     int max_y = HEADER_H + view_h;
     color_t col_txt = cinput::get_theme(current_theme_name).txt;
@@ -352,20 +380,37 @@ void Editor::draw_text_content(int view_h) {
         if (i == cy) {
             auto pos = get_cursor_rect(line, cx);
             int cursor_screen_y = current_screen_y + pos.second;
-            if (cursor_screen_y < max_y) drect(pos.first, cursor_screen_y, pos.first + 2, cursor_screen_y + TEXT_LINE_H - 2, col_txt);
+            if (cursor_screen_y < max_y && cursor_screen_y >= HEADER_H) {
+                drect(pos.first, cursor_screen_y, pos.first + 2, cursor_screen_y + TEXT_LINE_H - 2, col_txt);
+            }
         }
 
         int cur_x = TEXT_MARGIN_X;
         while (tk.next(text, color)) {
             int tw, th; dsize(text.c_str(), NULL, &tw, &th);
+            int token_len = text.length();
+
             if (word_wrap && cur_x + tw > SCREEN_W - 5) {
-                current_screen_y += TEXT_LINE_H; cur_x = TEXT_MARGIN_X;
-                if (current_screen_y >= max_y) break;
+                // Char by char drawing for wrapping tokens
+                for(int j = 0; j < token_len; ++j) {
+                    char c_str[2] = {text[j], 0};
+                    int cw, ch; dsize(c_str, NULL, &cw, &ch);
+                    if (cur_x + cw > SCREEN_W - 5) {
+                        current_screen_y += TEXT_LINE_H; cur_x = TEXT_MARGIN_X;
+                        if (current_screen_y >= max_y) goto next_line;
+                    }
+                    dtext(cur_x, current_screen_y + TEXT_Y_OFFSET, color, c_str);
+                    cur_x += cw;
+                }
+            } else {
+                if (word_wrap || cur_x <= SCREEN_W) {
+                    dtext(cur_x, current_screen_y + TEXT_Y_OFFSET, color, text.c_str());
+                }
+                cur_x += tw;
             }
-            if (word_wrap || cur_x <= SCREEN_W) dtext(cur_x, current_screen_y + TEXT_Y_OFFSET, color, text.c_str());
-            cur_x += tw;
         }
         current_screen_y += TEXT_LINE_H;
+        next_line:;
     }
     dwindow_set({0, 0, SCREEN_W, SCREEN_H});
 }

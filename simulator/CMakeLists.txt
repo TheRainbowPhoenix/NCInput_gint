@@ -5,9 +5,12 @@ set(CMAKE_CXX_STANDARD 17)
 
 # Find SDL2
 if(EMSCRIPTEN)
-    set(SDL2_FLAGS "-sUSE_SDL=2")
+    add_compile_options("-sUSE_SDL=2")
+    add_link_options("-sUSE_SDL=2")
+    set(SDL2_LIBRARIES "")
 else()
     find_package(SDL2 REQUIRED)
+    set(SDL2_LIBRARIES SDL2::SDL2)
 endif()
 
 include_directories(include)
@@ -17,9 +20,10 @@ set(SHARED_SOURCES
     ../src/shared/cinput.cpp
     ../src/shared/cdateinput.cpp
     ../src/shared/LazyFile.cpp
+    ../src/shared/mcs.cpp
 )
 
-set(APPS "cinput_demo" "physchem" "app_template" "ced" "cptime" "fm")
+set(APPS "cinput_demo" "physchem" "app_template" "ced" "cptime" "fm" "mcsbrowse")
 
 foreach(APP ${APPS})
     if("${APP}" STREQUAL "ced")
@@ -27,6 +31,12 @@ foreach(APP ${APPS})
             ../src/apps/ced/main.cpp
             ../src/apps/ced/editor.cpp
             ../src/apps/ced/tokenizer.cpp
+            ${SHARED_SOURCES}
+            src/simulator.cpp
+        )
+    elseif("${APP}" STREQUAL "mcsbrowse")
+        set(APP_SOURCES
+            ../src/apps/mcsbrowse/main.cpp
             ${SHARED_SOURCES}
             src/simulator.cpp
         )
@@ -43,11 +53,11 @@ foreach(APP ${APPS})
 
     if(EMSCRIPTEN)
         add_executable(${APP}_web ${APP_SOURCES})
-        target_compile_options(${APP}_web PUBLIC ${SDL2_FLAGS})
-        target_link_options(${APP}_web PUBLIC ${SDL2_FLAGS} "-sASYNCIFY" "--shell-file" "${CMAKE_CURRENT_SOURCE_DIR}/shell.html")
+        target_link_libraries(${APP}_web ${SDL2_LIBRARIES})
         set_target_properties(${APP}_web PROPERTIES SUFFIX ".html")
+        target_link_options(${APP}_web PRIVATE "-sASYNCIFY" "--shell-file" "${CMAKE_CURRENT_SOURCE_DIR}/shell.html")
     else()
         add_executable(${APP}_sim ${APP_SOURCES})
-        target_link_libraries(${APP}_sim SDL2::SDL2)
+        target_link_libraries(${APP}_sim ${SDL2_LIBRARIES})
     endif()
 endforeach()
