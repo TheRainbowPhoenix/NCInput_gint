@@ -9,10 +9,8 @@
 #include <map>
 #include <memory>
 
-namespace cinput {
-
 // =============================================================================
-// CONSTANTS & CONFIG
+// CONSTANTS & CONFIG (Global Scope)
 // =============================================================================
 
 #ifndef SCREEN_W
@@ -21,6 +19,8 @@ namespace cinput {
 #ifndef SCREEN_H
 #define SCREEN_H 528
 #endif
+
+namespace cinput {
 
 // Layout Dimensions
 const int KBD_H = 260;

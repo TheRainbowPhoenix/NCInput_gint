@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <cstring>
 #include <vector>
+#include "cinput.hpp"
 
 // --- Colors ---
 #define CP_BG         C_RGB(3, 3, 4)
@@ -87,8 +88,8 @@ void draw_colon(int x, int y, int w, int h, color_t c) {
 }
 
 void draw_btn(int x, int y, int w, int h, const char* text, color_t color, bool pressed) {
-    color_t bg = pressed ? C_WHITE : color;
-    color_t tc = pressed ? C_BLACK : C_WHITE;
+    color_t bg = pressed ? (color_t)C_WHITE : color;
+    color_t tc = pressed ? (color_t)C_BLACK : (color_t)C_WHITE;
     drect(x, y, x + w, y + h, bg);
     ::drect_border(x, y, x + w, y + h, (int)C_NONE, 2, (int)C_RGB(10, 10, 10));
     dtext_opt(x + w / 2, y + h / 2, tc, (int)C_NONE, DTEXT_CENTER, DTEXT_MIDDLE, text, -1);

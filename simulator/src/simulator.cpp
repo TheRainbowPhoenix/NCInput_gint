@@ -1,4 +1,4 @@
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #include "cinput.hpp"
 #include <gint/display.h>
 #include <gint/keyboard.h>
