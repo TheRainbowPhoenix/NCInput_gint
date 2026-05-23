@@ -78,6 +78,7 @@ public:
     };
 
     ListView(Rect rect, const std::vector<ListItem>& items, int row_h = 40, const std::string& theme = "light", int headers_h = -1);
+    virtual ~ListView() = default;
 
     void recalc_layout();
     void select_next(int start_idx, int step);
@@ -87,7 +88,7 @@ public:
     bool update(const std::vector<key_event_t>& events, Action& out_action);
 
     int get_index_at(int y);
-    void draw_item(int x, int y, const ListItem& item, bool is_selected);
+    virtual void draw_item(int x, int y, const ListItem& item, bool is_selected);
     void draw();
     void draw_check(int x, int y, const Theme& t);
 

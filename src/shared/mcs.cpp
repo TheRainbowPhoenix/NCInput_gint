@@ -55,9 +55,9 @@ static uint32_t read32(uint32_t addr) {
 }
 #else
 // Direct access for hardware
-static uint8_t read8(uint32_t addr) { return *(volatile uint8_t*)addr; }
-static uint16_t read16(uint32_t addr) { return *(volatile uint16_t*)addr; }
-static uint32_t read32(uint32_t addr) { return *(volatile uint32_t*)addr; }
+static uint8_t read8(uint32_t addr) { return *(volatile uint8_t*)(uintptr_t)addr; }
+static uint16_t read16(uint32_t addr) { return *(volatile uint16_t*)(uintptr_t)addr; }
+static uint32_t read32(uint32_t addr) { return *(volatile uint32_t*)(uintptr_t)addr; }
 #endif
 
 namespace mcs {

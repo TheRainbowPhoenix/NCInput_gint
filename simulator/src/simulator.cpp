@@ -122,15 +122,10 @@ static const uint8_t font8x8[96][8] = {
     {0x1c,0x36,0x36,0x1c,0x00,0x00,0x00,0x00}  // bullet
 };
 
-static SDL_Rect clip_rect = {0, 0, SCREEN_W, SCREEN_H};
-
 // --- Helper: Pixel Drawing ---
 static void set_pixel(int x, int y, color_t c) {
-    if (x >= clip_rect.x && x < clip_rect.x + clip_rect.w &&
-        y >= clip_rect.y && y < clip_rect.y + clip_rect.h) {
-        if (x >= 0 && x < SCREEN_W && y >= 0 && y < SCREEN_H) {
-            vram[y * SCREEN_W + x] = c;
-        }
+    if (x >= 0 && x < SCREEN_W && y >= 0 && y < SCREEN_H) {
+        vram[y * SCREEN_W + x] = c;
     }
 }
 
@@ -239,6 +234,8 @@ void dpoly(int const *px, int const *py, int n, int color, int border) {
         dline(px[i], py[i], px[next], py[next], (color_t)color);
     }
 }
+
+static SDL_Rect clip_rect = {0, 0, SCREEN_W, SCREEN_H};
 
 void dsize(const char *str, void const *font, int *w, int *h) {
     if (!str) { if(w) *w = 0; if(h) *h = 0; return; }
