@@ -13,7 +13,7 @@ set(SHARED_SOURCES
     src/shared/LazyFile.cpp
 )
 
-set(APPS "cinput_demo" "physchem" "app_template" "ced")
+set(APPS "cinput_demo" "physchem" "app_template" "ced" "cptime" "fm")
 
 foreach(APP ${APPS})
     if("${APP}" STREQUAL "ced")
@@ -21,6 +21,12 @@ foreach(APP ${APPS})
             src/apps/ced/main.cpp
             src/apps/ced/editor.cpp
             src/apps/ced/tokenizer.cpp
+            ${SHARED_SOURCES}
+        )
+    elseif("${APP}" STREQUAL "fm")
+        set(APP_SOURCES
+            src/apps/fm/main.cpp
+            src/apps/fm/fm.cpp
             ${SHARED_SOURCES}
         )
     else()

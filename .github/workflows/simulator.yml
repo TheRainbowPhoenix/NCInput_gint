@@ -92,6 +92,16 @@ jobs:
         cp simulator/build_web/ced_web.html simulator/dist/ced/index.html
         cp simulator/build_web/ced_web.js simulator/dist/ced/
         cp simulator/build_web/ced_web.wasm simulator/dist/ced/
+
+        mkdir -p simulator/dist/cptime
+        cp simulator/build_web/cptime_web.html simulator/dist/cptime/index.html
+        cp simulator/build_web/cptime_web.js simulator/dist/cptime/
+        cp simulator/build_web/cptime_web.wasm simulator/dist/cptime/
+
+        mkdir -p simulator/dist/fm
+        cp simulator/build_web/fm_web.html simulator/dist/fm/index.html
+        cp simulator/build_web/fm_web.js simulator/dist/fm/
+        cp simulator/build_web/fm_web.wasm simulator/dist/fm/
     - name: Upload Web Artifacts
       uses: actions/upload-artifact@v4
       with:

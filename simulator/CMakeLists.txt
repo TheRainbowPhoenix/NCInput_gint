@@ -1,27 +1,26 @@
 cmake_minimum_required(VERSION 3.15)
-project(cinput_simulator)
+project(Simulator)
 
 set(CMAKE_CXX_STANDARD 17)
 
+# Find SDL2
 if(EMSCRIPTEN)
-    set(IS_WEB TRUE)
-elseif(WIN32)
-    set(IS_WINDOWS TRUE)
-    set(IS_NATIVE TRUE)
+    set(SDL2_LIBRARIES "-sUSE_SDL=2")
 else()
-    set(IS_NATIVE TRUE)
+    find_package(SDL2 REQUIRED)
+    include_directories(${SDL2_INCLUDE_DIRS})
 endif()
+
+include_directories(include)
+include_directories(../src/shared)
 
 set(SHARED_SOURCES
     ../src/shared/cinput.cpp
     ../src/shared/cdateinput.cpp
     ../src/shared/LazyFile.cpp
-    src/simulator.cpp
 )
 
-include_directories(include ../src/shared ../src/apps/ced)
-
-set(APPS "cinput_demo" "physchem" "app_template" "ced")
+set(APPS "cinput_demo" "physchem" "app_template" "ced" "cptime" "fm")
 
 foreach(APP ${APPS})
     if("${APP}" STREQUAL "ced")
@@ -30,35 +29,26 @@ foreach(APP ${APPS})
             ../src/apps/ced/editor.cpp
             ../src/apps/ced/tokenizer.cpp
             ${SHARED_SOURCES}
+            src/simulator.cpp
+        )
+    elseif("${APP}" STREQUAL "fm")
+        set(APP_SOURCES
+            ../src/apps/fm/main.cpp
+            ../src/apps/fm/fm.cpp
+            ${SHARED_SOURCES}
+            src/simulator.cpp
         )
     else()
-        set(APP_SOURCES ../src/apps/${APP}/main.cpp ${SHARED_SOURCES})
+        set(APP_SOURCES ../src/apps/${APP}/main.cpp ${SHARED_SOURCES} src/simulator.cpp)
     endif()
 
-    if(IS_NATIVE)
-        find_package(SDL2 REQUIRED)
-        add_executable(${APP}_sim ${APP_SOURCES})
-        target_link_libraries(${APP}_sim SDL2::SDL2)
-        target_compile_definitions(${APP}_sim PRIVATE SIMULATOR_NATIVE)
-        if(IS_WINDOWS)
-            add_custom_command(TARGET ${APP}_sim POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "$<TARGET_FILE_DIR:SDL2::SDL2>/SDL2.dll"
-                "$<TARGET_FILE_DIR:${APP}_sim>"
-            )
-        endif()
-    endif()
-
-    if(IS_WEB)
+    if(EMSCRIPTEN)
         add_executable(${APP}_web ${APP_SOURCES})
+        target_link_libraries(${APP}_web ${SDL2_LIBRARIES})
         set_target_properties(${APP}_web PROPERTIES SUFFIX ".html")
-        target_compile_options(${APP}_web PRIVATE -sUSE_SDL=2)
-        target_link_options(${APP}_web PRIVATE
-            -sUSE_SDL=2
-            -sWASM=1
-            -sASYNCIFY
-            --shell-file "${CMAKE_CURRENT_SOURCE_DIR}/shell.html"
-        )
-        target_compile_definitions(${APP}_web PRIVATE SIMULATOR_WEB)
+        target_link_options(${APP}_web PRIVATE "-sASYNCIFY" "--shell-file" "${CMAKE_CURRENT_SOURCE_DIR}/shell.html")
+    else()
+        add_executable(${APP}_sim ${APP_SOURCES})
+        target_link_libraries(${APP}_sim ${SDL2_LIBRARIES})
     endif()
 endforeach()
