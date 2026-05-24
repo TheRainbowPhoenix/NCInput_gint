@@ -6,9 +6,11 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
+#ifndef _WIN32
 #include <dirent.h>
-#include <sys/stat.h>
 #include <unistd.h>
+#endif
+#include <sys/stat.h>
 
 namespace fm {
 
@@ -65,6 +67,7 @@ FileManager::FileManager() : theme(cinput::get_theme("light")) {
 void FileManager::refresh() {
     items.clear();
 
+#ifndef _WIN32
     DIR* dr = opendir(current_path.c_str());
     if (dr) {
         struct dirent* de;
@@ -93,6 +96,13 @@ void FileManager::refresh() {
         }
         closedir(dr);
     }
+#else
+    // Mock files for Windows build
+    if (current_path != "/") items.push_back({"..", 0, true});
+    items.push_back({"win_mock_folder", 0, true});
+    items.push_back({"readme_win.txt", 512, false});
+    items.push_back({"run.bin", 2048, false});
+#endif
 
     if (sort_mode == "name") {
         std::sort(items.begin(), items.end(), [](const FileItem& a, const FileItem& b) {
