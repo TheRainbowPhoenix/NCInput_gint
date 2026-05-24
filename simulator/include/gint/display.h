@@ -57,7 +57,12 @@ void dwindow_set(dwindow_t window);
 }
 #endif
 
-// Mirror the native gint macro/type dual nature in a portable way.
-#define dwindow dwindow_t
+// On ClassPad gint, dwindow is both a type and a constructor-like macro.
+// We provide a constructor-like macro for the simulator that works in C and C++.
+#ifdef __cplusplus
+#define dwindow(...) (dwindow_t{ __VA_ARGS__ })
+#else
+#define dwindow(x1, y1, x2, y2) ((dwindow_t){x1, y1, x2, y2})
+#endif
 
 #endif

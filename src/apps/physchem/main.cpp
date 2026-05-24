@@ -274,146 +274,161 @@ int main() {
 #endif
 
     THEMES[THEME_NAME] = {
-        C_RGB(29, 62, 29), C_RGB(29, 62, 29), C_RGB(31, 63, 31),
-        C_RGB(22, 52, 22), C_RGB(0, 0, 0), C_RGB(2, 12, 3),
-        C_RGB(10, 28, 10), C_RGB(4, 44, 12), C_RGB(31, 63, 31),
-        C_RGB(20, 52, 20), C_WHITE
+        C_RGB(28, 60, 28), C_RGB(28, 60, 28), C_RGB(31, 63, 31),
+        C_RGB(16, 40, 16), C_RGB(0, 0, 0), C_RGB(2, 12, 3),
+        C_RGB(10, 28, 10), C_RGB(8, 40, 10), C_RGB(31, 63, 31),
+        C_RGB(25, 58, 25), C_WHITE
     };
 
     // --- Mechanics ---
-    Equation v_eq("Velocity", {"v", "u", "a", "t"},
+    Equation eq_kin_1("Velocity", {"v", "u", "a", "t"},
         {{"v", [](std::map<std::string, double>& x){ return x["u"] + x["a"]*x["t"]; }},
          {"u", [](std::map<std::string, double>& x){ return x["v"] - x["a"]*x["t"]; }},
          {"a", [](std::map<std::string, double>& x){ return (x["v"] - x["u"]) / x["t"]; }},
          {"t", [](std::map<std::string, double>& x){ return (x["v"] - x["u"]) / x["a"]; }}},
         {{"v","m/s"}, {"u","m/s"}, {"a","m/s^2"}, {"t","s"}});
 
-    Equation d_eq("Displacement", {"d", "u", "t", "a"},
+    Equation eq_kin_2("Displacement", {"d", "u", "t", "a"},
         {{"d", [](std::map<std::string, double>& x){ return x["u"]*x["t"] + 0.5*x["a"]*std::pow(x["t"],2); }},
          {"u", [](std::map<std::string, double>& x){ return (x["d"] - 0.5*x["a"]*std::pow(x["t"],2))/x["t"]; }},
          {"a", [](std::map<std::string, double>& x){ return 2*(x["d"] - x["u"]*x["t"])/std::pow(x["t"],2); }}},
         {{"d","m"}, {"u","m/s"}, {"t","s"}, {"a","m/s^2"}});
 
-    Equation kin3_eq("Time-indep.", {"v", "u", "a", "d"},
+    Equation eq_kin_3("Time-indep.", {"v", "u", "a", "d"},
         {{"v", [](std::map<std::string, double>& x){ return std::sqrt(std::pow(x["u"], 2) + 2*x["a"]*x["d"]); }},
          {"u", [](std::map<std::string, double>& x){ return std::sqrt(std::pow(x["v"], 2) - 2*x["a"]*x["d"]); }},
          {"a", [](std::map<std::string, double>& x){ return (std::pow(x["v"], 2) - std::pow(x["u"], 2)) / (2*x["d"]); }},
          {"d", [](std::map<std::string, double>& x){ return (std::pow(x["v"], 2) - std::pow(x["u"], 2)) / (2*x["a"]); }}},
         {{"v","m/s"}, {"u","m/s"}, {"a","m/s^2"}, {"d","m"}});
 
-    Equation newton_eq("Newton's 2nd Law", {"F", "m", "a"},
+    Equation eq_newton("Newton's 2nd Law", {"F", "m", "a"},
         {{"F", [](std::map<std::string, double>& x){ return x["m"] * x["a"]; }},
          {"m", [](std::map<std::string, double>& x){ return x["F"] / x["a"]; }},
          {"a", [](std::map<std::string, double>& x){ return x["F"] / x["m"]; }}},
         {{"F","N"}, {"m","kg"}, {"a","m/s^2"}});
 
-    Equation ke_eq("Kinetic Energy", {"K", "m", "v"},
+    Equation eq_ke("Kinetic Energy", {"K", "m", "v"},
         {{"K", [](std::map<std::string, double>& x){ return 0.5 * x["m"] * std::pow(x["v"], 2); }},
          {"m", [](std::map<std::string, double>& x){ return 2 * x["K"] / std::pow(x["v"], 2); }},
          {"v", [](std::map<std::string, double>& x){ return std::sqrt(2 * x["K"] / x["m"]); }}},
         {{"K","J"}, {"m","kg"}, {"v","m/s"}});
 
-    Equation pe_eq("Potential Energy", {"U", "m", "g", "h"},
+    Equation eq_pe("Potential Energy", {"U", "m", "g", "h"},
         {{"U", [](std::map<std::string, double>& x){ return x["m"] * x["g"] * x["h"]; }},
          {"m", [](std::map<std::string, double>& x){ return x["U"] / (x["g"] * x["h"]); }},
          {"h", [](std::map<std::string, double>& x){ return x["U"] / (x["m"] * x["g"]); }}},
         {{"U","J"}, {"m","kg"}, {"g","m/s^2"}, {"h","m"}});
 
-    Equation circ_eq("Centripetal Force", {"F", "m", "v", "r"},
+    Equation eq_circ("Centripetal Force", {"F", "m", "v", "r"},
         {{"F", [](std::map<std::string, double>& x){ return (x["m"] * std::pow(x["v"], 2)) / x["r"]; }},
          {"m", [](std::map<std::string, double>& x){ return (x["F"] * x["r"]) / std::pow(x["v"], 2); }},
          {"r", [](std::map<std::string, double>& x){ return (x["m"] * std::pow(x["v"], 2)) / x["F"]; }},
          {"v", [](std::map<std::string, double>& x){ return std::sqrt((x["F"] * x["r"]) / x["m"]); }}},
         {{"F","N"}, {"m","kg"}, {"v","m/s"}, {"r","m"}});
 
-    Equation mom_eq("Momentum (p=mv)", {"p", "m", "v"},
+    Equation eq_mom("Momentum (p=mv)", {"p", "m", "v"},
         {{"p", [](std::map<std::string, double>& x){ return x["m"] * x["v"]; }},
          {"m", [](std::map<std::string, double>& x){ return x["p"] / x["v"]; }},
          {"v", [](std::map<std::string, double>& x){ return x["p"] / x["m"]; }}},
         {{"p","kgm/s"}, {"m","kg"}, {"v","m/s"}});
 
     // --- Electricity ---
-    Equation ohm_eq("Ohm's Law", {"V", "I", "R"},
+    Equation eq_ohm("Ohm's Law", {"V", "I", "R"},
         {{"V", [](std::map<std::string, double>& x){ return x["I"] * x["R"]; }},
          {"I", [](std::map<std::string, double>& x){ return x["V"] / x["R"]; }},
          {"R", [](std::map<std::string, double>& x){ return x["V"] / x["I"]; }}},
         {{"V","V"}, {"I","A"}, {"R","ohm"}});
 
-    Equation pvi_eq("Power (P=VI)", {"P", "V", "I"},
+    Equation eq_elec_p("Power (P=VI)", {"P", "V", "I"},
         {{"P", [](std::map<std::string, double>& x){ return x["V"] * x["I"]; }},
          {"V", [](std::map<std::string, double>& x){ return x["P"] / x["I"]; }},
          {"I", [](std::map<std::string, double>& x){ return x["P"] / x["V"]; }}},
         {{"P","W"}, {"V","V"}, {"I","A"}});
 
-    Equation coul_eq("Coulomb's Law", {"F", "q1", "q2", "r", "k"},
+    Equation eq_coulomb("Coulomb's Law", {"F", "q1", "q2", "r", "k"},
         {{"F", [](std::map<std::string, double>& x){ return x["k"] * std::abs(x["q1"]*x["q2"]) / std::pow(x["r"], 2); }},
          {"r", [](std::map<std::string, double>& x){ return std::sqrt(x["k"] * std::abs(x["q1"]*x["q2"]) / x["F"]); }}},
         {{"F","N"}, {"q1","C"}, {"q2","C"}, {"r","m"}, {"k","const"}});
 
-    Equation cap_eq("Capacitor (Q=CV)", {"Q", "C", "V"},
+    Equation eq_cap("Capacitor (Q=CV)", {"Q", "C", "V"},
         {{"Q", [](std::map<std::string, double>& x){ return x["C"] * x["V"]; }},
          {"C", [](std::map<std::string, double>& x){ return x["Q"] / x["V"]; }},
          {"V", [](std::map<std::string, double>& x){ return x["Q"] / x["C"]; }}},
         {{"Q","C"}, {"C","F"}, {"V","V"}});
 
     // --- Waves & Light ---
-    Equation wave_eq("Wave Eq (v=fL)", {"v", "f", "L"},
+    Equation eq_wave("Wave Eq (v=fL)", {"v", "f", "L"},
         {{"v", [](std::map<std::string, double>& x){ return x["f"] * x["L"]; }},
          {"f", [](std::map<std::string, double>& x){ return x["v"] / x["L"]; }},
          {"L", [](std::map<std::string, double>& x){ return x["v"] / x["f"]; }}},
         {{"v","m/s"}, {"f","Hz"}, {"L","m"}});
 
-    Equation period_eq("Period (T=1/f)", {"T", "f"},
+    Equation eq_period("Period (T=1/f)", {"T", "f"},
         {{"T", [](std::map<std::string, double>& x){ return 1.0 / x["f"]; }},
          {"f", [](std::map<std::string, double>& x){ return 1.0 / x["T"]; }}},
         {{"T","s"}, {"f","Hz"}});
 
-    Equation snell_eq("Snell's Law", {"n1", "n2", "th1", "th2"},
+    Equation eq_snell("Snell's Law", {"n1", "n2", "th1", "th2"},
         {{"n2", [](std::map<std::string, double>& x){ return x["n1"] * std::sin(x["th1"] * PI_CONST / 180.0) / std::sin(x["th2"] * PI_CONST / 180.0); }},
          {"n1", [](std::map<std::string, double>& x){ return x["n2"] * std::sin(x["th2"] * PI_CONST / 180.0) / std::sin(x["th1"] * PI_CONST / 180.0); }}},
         {{"th1","deg"}, {"th2","deg"}});
 
     // --- Chemistry ---
-    Equation mole_eq("Molar Mass", {"n", "mass", "M"},
+    Equation eq_moles("Molar Mass", {"n", "mass", "M"},
         {{"n", [](std::map<std::string, double>& x){ return x["mass"] / x["M"]; }},
          {"mass", [](std::map<std::string, double>& x){ return x["n"] * x["M"]; }},
          {"M", [](std::map<std::string, double>& x){ return x["mass"] / x["n"]; }}},
         {{"n","mol"}, {"mass","g"}, {"M","g/mol"}});
 
-    Equation molarity_eq("Molarity (C=n/V)", {"C", "n", "V"},
+    Equation eq_molarity("Molarity (C=n/V)", {"C", "n", "V"},
         {{"C", [](std::map<std::string, double>& x){ return x["n"] / x["V"]; }},
          {"n", [](std::map<std::string, double>& x){ return x["C"] * x["V"]; }},
          {"V", [](std::map<std::string, double>& x){ return x["n"] / x["C"]; }}},
         {{"C","M"}, {"n","mol"}, {"V","L"}});
 
-    Equation gas_eq("Ideal Gas (PV=nRT)", {"P", "V", "n", "T", "R"},
+    Equation eq_gas("Ideal Gas (PV=nRT)", {"P", "V", "n", "T", "R"},
         {{"P", [](std::map<std::string, double>& x){ return (x["n"] * x["R"] * x["T"]) / x["V"]; }},
          {"V", [](std::map<std::string, double>& x){ return (x["n"] * x["R"] * x["T"]) / x["P"]; }},
          {"n", [](std::map<std::string, double>& x){ return (x["P"] * x["V"]) / (x["R"] * x["T"]); }},
          {"T", [](std::map<std::string, double>& x){ return (x["P"] * x["V"]) / (x["n"] * x["R"]); }}},
         {{"P","Pa"}, {"V","m^3"}, {"n","mol"}, {"T","K"}, {"R","const"}});
 
-    Equation density_eq("Density (D=m/V)", {"D", "m", "V"},
+    Equation eq_density("Density (D=m/V)", {"D", "m", "V"},
         {{"D", [](std::map<std::string, double>& x){ return x["m"] / x["V"]; }},
          {"m", [](std::map<std::string, double>& x){ return x["D"] * x["V"]; }},
          {"V", [](std::map<std::string, double>& x){ return x["m"] / x["D"]; }}},
         {{"D","g/mL"}, {"m","g"}, {"V","mL"}});
 
-    Equation heat_eq("Heat (q=mcDT)", {"q", "m", "c", "DT"},
+    Equation eq_heat("Heat (q=mcDT)", {"q", "m", "c", "DT"},
         {{"q", [](std::map<std::string, double>& x){ return x["m"] * x["c"] * x["DT"]; }},
          {"m", [](std::map<std::string, double>& x){ return x["q"] / (x["c"] * x["DT"]); }}},
         {{"q","J"}, {"m","g"}, {"c","J/gC"}, {"DT","C"}});
 
     std::vector<std::string> categories = {"Mechanics", "Electricity", "Waves & Light", "Chemistry"};
-    std::map<std::string, std::vector<Equation*>> menu_tree;
-    menu_tree["Mechanics"] = {&v_eq, &d_eq, &kin3_eq, &newton_eq, &ke_eq, &pe_eq, &circ_eq, &mom_eq};
-    menu_tree["Electricity"] = {&ohm_eq, &pvi_eq, &coul_eq, &cap_eq};
-    menu_tree["Waves & Light"] = {&wave_eq, &period_eq, &snell_eq};
-    menu_tree["Chemistry"] = {&mole_eq, &molarity_eq, &gas_eq, &density_eq, &heat_eq};
+    std::map<std::string, std::map<std::string, std::vector<Equation*>>> menu_tree;
 
-    enum class View { CATEGORIES, EQUATIONS };
+    menu_tree["Mechanics"]["1-D Kinematics"] = {&eq_kin_1, &eq_kin_2, &eq_kin_3};
+    menu_tree["Mechanics"]["Newton's Laws"] = {&eq_newton};
+    menu_tree["Mechanics"]["Work & Energy"] = {&eq_ke, &eq_pe};
+    menu_tree["Mechanics"]["Circular Motion"] = {&eq_circ};
+    menu_tree["Mechanics"]["Momentum"] = {&eq_mom};
+
+    menu_tree["Electricity"]["Circuits"] = {&eq_ohm, &eq_elec_p};
+    menu_tree["Electricity"]["Electrostatics"] = {&eq_coulomb};
+    menu_tree["Electricity"]["Capacitance"] = {&eq_cap};
+
+    menu_tree["Waves & Light"]["Basics"] = {&eq_wave, &eq_period};
+    menu_tree["Waves & Light"]["Optics"] = {&eq_snell};
+
+    menu_tree["Chemistry"]["Stoichiometry"] = {&eq_moles, &eq_density};
+    menu_tree["Chemistry"]["Solutions"] = {&eq_molarity};
+    menu_tree["Chemistry"]["Gas Laws"] = {&eq_gas};
+    menu_tree["Chemistry"]["Thermodynamics"] = {&eq_heat};
+
+    enum class View { CATEGORIES, SECTIONS, EQUATIONS };
     View current_view = View::CATEGORIES;
     std::string current_cat = categories[0];
+    std::string current_sec = "";
 
     while (true) {
         std::vector<ListItem> items;
@@ -422,9 +437,16 @@ int main() {
         if (current_view == View::CATEGORIES) {
             for (const auto& cat : categories) items.push_back({cat, "item", LIST_ITEM_H, false, true});
             title = "PhysChem";
-        } else {
-            for (auto eq : menu_tree[current_cat]) items.push_back({eq->name, "item", LIST_ITEM_H, false, true});
+        } else if (current_view == View::SECTIONS) {
+            for (auto const& [sec, eqs] : menu_tree[current_cat]) {
+                items.push_back({sec, "item", LIST_ITEM_H, false, true});
+            }
             title = current_cat;
+        } else {
+            for (auto eq : menu_tree[current_cat][current_sec]) {
+                items.push_back({eq->name, "item", LIST_ITEM_H, false, true});
+            }
+            title = current_sec;
         }
 
         ListView lv({0, HEADER_H, SCREEN_W, SCREEN_H - HEADER_H}, items, LIST_ITEM_H, THEME_NAME, SECTION_H);
@@ -447,7 +469,8 @@ int main() {
             dupdate(); cleareventflips();
 
             if (keypressed(KEY_EXIT)) {
-                if (current_view == View::EQUATIONS) { current_view = View::CATEGORIES; in_view = false; }
+                if (current_view == View::EQUATIONS) { current_view = View::SECTIONS; in_view = false; }
+                else if (current_view == View::SECTIONS) { current_view = View::CATEGORIES; in_view = false; }
                 else return 0;
             }
 
@@ -455,10 +478,11 @@ int main() {
             std::vector<key_event_t> events;
             while(ev.type != KEYEV_NONE) {
                 if (ev.type == KEYEV_TOUCH_UP && ev.y < HEADER_H && ev.x < 60) {
-                    if (current_view == View::EQUATIONS) { current_view = View::CATEGORIES; in_view = false; }
+                    if (current_view == View::EQUATIONS) { current_view = View::SECTIONS; in_view = false; }
+                    else if (current_view == View::SECTIONS) { current_view = View::CATEGORIES; in_view = false; }
                     else {
                         auto res = pick(categories, "Jump to...", THEME_NAME, false, KEYEV_TOUCH_UP);
-                        if (res.success && !res.values.empty()) { current_cat = res.values[0]; current_view = View::EQUATIONS; in_view = false; }
+                        if (res.success && !res.values.empty()) { current_cat = res.values[0]; current_view = View::SECTIONS; in_view = false; }
                     }
                 }
                 events.push_back(ev); ev = pollevent();
@@ -469,10 +493,19 @@ int main() {
                 if (action.type == "click") {
                     if (current_view == View::CATEGORIES) {
                         current_cat = categories[action.index];
+                        current_view = View::SECTIONS;
+                        in_view = false;
+                    } else if (current_view == View::SECTIONS) {
+                        // Get section name by iterating map at action.index
+                        int i = 0;
+                        for (auto const& [sec, eqs] : menu_tree[current_cat]) {
+                            if (i == action.index) { current_sec = sec; break; }
+                            i++;
+                        }
                         current_view = View::EQUATIONS;
                         in_view = false;
                     } else {
-                        SolverActivity solver(menu_tree[current_cat][action.index]);
+                        SolverActivity solver(menu_tree[current_cat][current_sec][action.index]);
                         solver.run();
                     }
                 }

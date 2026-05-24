@@ -1,4 +1,4 @@
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #include "cinput.hpp"
 #include <gint/display.h>
 #include <gint/keyboard.h>
@@ -229,9 +229,32 @@ void dtext_opt(int x, int y, color_t fg, int bg, int halign, int valign, const c
 }
 
 void dpoly(int const *px, int const *py, int n, int color, int border) {
-    for (int i = 0; i < n; ++i) {
-        int next = (i + 1) % n;
-        dline(px[i], py[i], px[next], py[next], (color_t)color);
+    if (color != (int)C_NONE) {
+        // Simple bounding box fill for small convex polygons (like icons)
+        int min_x = px[0], max_x = px[0], min_y = py[0], max_y = py[0];
+        for(int i=1; i<n; ++i) {
+            min_x = std::min(min_x, px[i]); max_x = std::max(max_x, px[i]);
+            min_y = std::min(min_y, py[i]); max_y = std::max(max_y, py[i]);
+        }
+        for(int y = min_y; y <= max_y; ++y) {
+            for(int x = min_x; x <= max_x; ++x) {
+                // Point in polygon test
+                bool inside = false;
+                for (int i = 0, j = n - 1; i < n; j = i++) {
+                    if (((py[i] > y) != (py[j] > y)) &&
+                        (x < (px[j] - px[i]) * (y - py[i]) / (py[j] - py[i]) + px[i])) {
+                        inside = !inside;
+                    }
+                }
+                if (inside) set_pixel(x, y, (color_t)color);
+            }
+        }
+    }
+    if (border != (int)C_NONE) {
+        for (int i = 0; i < n; ++i) {
+            int next = (i + 1) % n;
+            dline(px[i], py[i], px[next], py[next], (color_t)border);
+        }
     }
 }
 

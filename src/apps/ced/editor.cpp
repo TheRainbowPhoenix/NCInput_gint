@@ -337,9 +337,7 @@ void Editor::draw_indentation_guides(const std::string& line, int x, int y) {
 }
 
 void Editor::draw_text_content(int view_h) {
-    // In native gint, dwindow_set likely expects a struct.
-    // Braced initialization is the most portable way in C++.
-    dwindow_set({ 0, HEADER_H, SCREEN_W, SCREEN_H });
+    dwindow_set({0, HEADER_H, SCREEN_W, SCREEN_H});
     int current_screen_y = HEADER_H + 6;
     int max_y = HEADER_H + view_h;
     color_t col_txt = cinput::get_theme(current_theme_name).txt;
@@ -369,7 +367,7 @@ void Editor::draw_text_content(int view_h) {
         }
         current_screen_y += TEXT_LINE_H;
     }
-    dwindow_set({ 0, 0, SCREEN_W, SCREEN_H });
+    dwindow_set({0, 0, SCREEN_W, SCREEN_H});
 }
 
 void Editor::draw() {
